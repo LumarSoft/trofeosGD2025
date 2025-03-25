@@ -1,19 +1,19 @@
-"use client"
+"use client";
 
-import { motion, AnimatePresence } from "framer-motion"
-import Image from "next/image"
-import { X } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ProductModalProps {
   product: {
-    id: number
-    name: string
-    description: string
-    image: string
-    category: string
-  }
-  onClose: () => void
+    id: number;
+    name: string;
+    description: string;
+    image: string;
+    category: string;
+  };
+  onClose: () => void;
 }
 
 export default function ProductModal({ product, onClose }: ProductModalProps) {
@@ -47,17 +47,28 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
 
           <div className="flex flex-col md:flex-row">
             <div className="relative w-full md:w-1/2 h-[300px] md:h-auto">
-              <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
+              <Image
+                src={product.image || "/placeholder.svg"}
+                alt={product.name}
+                fill
+                className="object-cover"
+              />
             </div>
 
             <div className="p-6 md:p-8 w-full md:w-1/2">
-              <div className="text-sm text-gold-light/60 mb-2">{product.category}</div>
-              <h2 className="text-2xl font-bold text-gold mb-4">{product.name}</h2>
+              <div className="text-sm text-gold-light/60 mb-2">
+                {product.category}
+              </div>
+              <h2 className="text-2xl font-bold text-gold mb-4">
+                {product.name}
+              </h2>
               <p className="text-gold-light/80 mb-6">{product.description}</p>
 
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-lg font-medium text-gold mb-2">Características</h3>
+                  <h3 className="text-lg font-medium text-gold mb-2">
+                    Características
+                  </h3>
                   <ul className="list-disc list-inside text-gold-light/70 space-y-1">
                     <li>Material de alta calidad</li>
                     <li>Acabado premium</li>
@@ -67,9 +78,12 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-medium text-gold mb-2">Personalización</h3>
+                  <h3 className="text-lg font-medium text-gold mb-2">
+                    Personalización
+                  </h3>
                   <p className="text-gold-light/70">
-                    Este producto puede ser personalizado con grabado láser, placas metálicas o impresión UV.
+                    Este producto puede ser personalizado con grabado láser,
+                    placas metálicas o impresión UV.
                   </p>
                 </div>
               </div>
@@ -87,6 +101,5 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
         </motion.div>
       </motion.div>
     </AnimatePresence>
-  )
+  );
 }
-

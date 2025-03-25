@@ -5,10 +5,9 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Premium Trophies & Awards",
+  title: "Trofeos GD",
   description:
-    "Explore our collection of high-quality trophies, medals, and corporate gifts",
-  generator: "v0.dev",
+    "Explore nuestra colección de trofeos, medallas y regalos de empresa de alta calidad",
 };
 
 export default function RootLayout({
@@ -24,4 +23,3 @@ export default function RootLayout({
 }
 
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";

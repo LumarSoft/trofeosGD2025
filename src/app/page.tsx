@@ -1,12 +1,20 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { useRouter } from "next/navigation"
-import { Trophy, Medal, Award, Gift, Shield, BookOpen, Briefcase } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import Navbar from "@/components/navbar"
-import Footer from "@/components/footer"
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+import {
+  Trophy,
+  Medal,
+  Award,
+  Gift,
+  Shield,
+  BookOpen,
+  Briefcase,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Navbar from "@/shared/components/navbar";
+import Footer from "@/shared/components/footer";
 
 const categories = [
   { id: "metal-cups", name: "Copas Metálicas", icon: Trophy },
@@ -16,16 +24,16 @@ const categories = [
   { id: "plates", name: "Placas", icon: BookOpen },
   { id: "corporate-gifts", name: "Regalos Empresariales", icon: Gift },
   { id: "leather-goods", name: "Marroquinería", icon: Briefcase },
-]
+];
 
 export default function Home() {
-  const router = useRouter()
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const router = useRouter();
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const handleCategoryClick = (categoryId: string) => {
-    setSelectedCategory(categoryId)
-    router.push(`/catalog/${categoryId}`)
-  }
+    setSelectedCategory(categoryId);
+    router.push(`/catalog/${categoryId}`);
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -35,7 +43,7 @@ export default function Home() {
         staggerChildren: 0.1,
       },
     },
-  }
+  };
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
@@ -47,7 +55,7 @@ export default function Home() {
         stiffness: 100,
       },
     },
-  }
+  };
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -63,7 +71,8 @@ export default function Home() {
           >
             <h1 className="heading-primary mb-4">Elegancia en cada premio</h1>
             <p className="text-lg md:text-xl text-gold-light/80 max-w-2xl mx-auto">
-              Descubra nuestra colección exclusiva de trofeos y reconocimientos de la más alta calidad
+              Explorá nuestra colección exclusiva de trofeos y reconocimientos
+              de la más alta calidad
             </p>
           </motion.div>
 
@@ -83,7 +92,9 @@ export default function Home() {
               >
                 <div className="flex flex-col items-center text-center">
                   <category.icon className="w-12 h-12 mb-4 text-gold" />
-                  <h3 className="text-lg font-medium text-gold">{category.name}</h3>
+                  <h3 className="text-lg font-medium text-gold">
+                    {category.name}
+                  </h3>
                 </div>
               </motion.div>
             ))}
@@ -95,7 +106,10 @@ export default function Home() {
             transition={{ delay: 0.8, duration: 0.6 }}
             className="mt-16 text-center"
           >
-            <Button onClick={() => router.push("/catalog")} className="btn-primary px-8 py-6 rounded-md font-medium">
+            <Button
+              onClick={() => router.push("/catalog")}
+              className="btn-primary px-8 py-6 rounded-md font-medium"
+            >
               Ver catálogo completo
             </Button>
           </motion.div>
@@ -104,6 +118,5 @@ export default function Home() {
 
       <Footer />
     </main>
-  )
+  );
 }
-
