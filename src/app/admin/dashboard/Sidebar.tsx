@@ -43,26 +43,12 @@ export default function Sidebar({ router, handleLogout }: SidebarProps) {
           <Users className="mr-2 h-4 w-4" />
           Usuarios
         </Button>
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-gold-light/80 hover:text-gold hover:bg-gold/10"
-        >
-          <BarChart className="mr-2 h-4 w-4" />
-          Estadísticas
-        </Button>
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-gold-light/80 hover:text-gold hover:bg-gold/10"
-        >
-          <Settings className="mr-2 h-4 w-4" />
-          Configuración
-        </Button>
       </nav>
 
       <div className="absolute bottom-4 w-56">
         <Button
           variant="outline"
-          className="w-full border-gold/30 text-gold hover:bg-gold/10"
+          className="w-full border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive-foreground transition-colors"
           onClick={handleLogout}
         >
           <LogOut className="mr-2 h-4 w-4" />

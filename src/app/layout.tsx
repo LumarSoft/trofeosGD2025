@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Trofeos GD",
+  title: "TrofeosGD",
   description:
     "Explore nuestra colección de trofeos, medallas y regalos de empresa de alta calidad",
 };

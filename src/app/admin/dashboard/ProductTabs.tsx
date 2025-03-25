@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import AdminProductForm from "@/shared/components/admin-product-form";
+import AdminProductForm from "@/app/admin/dashboard/admin-product-form";
 import ProductsTable from "./ProductsTable";
 import { Product } from "@/shared/types/Product";
 

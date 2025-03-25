@@ -1,44 +1,44 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Lock, User } from "lucide-react"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Lock, User } from "lucide-react";
 
 export default function AdminLogin() {
-  const router = useRouter()
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
     // In a real application, this would be an API call to authenticate
     try {
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Simple validation for demo purposes
       if (username === "admin" && password === "password") {
-        router.push("/admin/dashboard")
+        router.push("/admin/dashboard");
       } else {
-        setError("Credenciales inválidas. Por favor, intente nuevamente.")
+        setError("Credenciales inválidas. Por favor, intente nuevamente.");
       }
     } catch (err) {
-      setError("Error al iniciar sesión. Por favor, intente nuevamente.")
+      setError("Error al iniciar sesión. Por favor, intente nuevamente.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black p-4">
@@ -50,8 +50,13 @@ export default function AdminLogin() {
       >
         <div className="border border-gold/30 rounded-lg p-8 bg-black shadow-[0_0_25px_rgba(208,177,110,0.1)]">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gold mb-2">Panel de Administración</h1>
-            <p className="text-gold-light/70">Ingrese sus credenciales para acceder</p>
+            <h1 className="text-2xl font-bold text-gold mb-2">
+              Panel de Administración
+            </h1>
+            <p className="text-gold-light/70">
+              Ingrese sus credenciales para acceder
+            </p>
+            <span>admin y password</span>
           </div>
 
           {error && (
@@ -112,6 +117,5 @@ export default function AdminLogin() {
         </div>
       </motion.div>
     </div>
-  )
+  );
 }
-
