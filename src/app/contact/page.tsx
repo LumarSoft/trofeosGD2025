@@ -208,22 +208,6 @@ export default function ContactPage() {
                 <p className="text-gold-light/70">Sábados: 10:00 - 14:00</p>
               </div>
             </motion.div>
-
-            <motion.div variants={fadeInLeft} className="pt-4">
-              <h3 className="text-xl font-medium text-gold-light mb-4">
-                Síguenos
-              </h3>
-              <div className="flex space-x-4">
-                <a
-                  href="https://www.instagram.com/trofeosgd/"
-                  className="bg-gold/10 p-3 rounded-full hover:bg-gold/20 transition-colors"
-                  aria-label="Instagram"
-                  target="_blank"
-                >
-                  <Instagram className="h-5 w-5 text-gold" />
-                </a>
-              </div>
-            </motion.div>
           </motion.div>
 
           {/* Formulario de Contacto */}

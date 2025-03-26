@@ -1,74 +1,22 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import Image from "next/image"
-import { Search, Filter } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import Navbar from "@/shared/components/navbar"
-import Footer from "@/shared/components/footer"
-import ProductModal from "@/shared/components/product-modal"
-
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+import { Search, Filter } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import Navbar from "@/shared/components/navbar";
+import Footer from "@/shared/components/footer";
+import products from "./product";
+import ProductModal from "./product-modal";
 // Sample data - in a real app, this would come from an API or database
-const products = [
-  {
-    id: 1,
-    name: "Copa Campeón Elite",
-    description: "Copa metálica de alta calidad con base de mármol negro y detalles dorados.",
-    image: "/placeholder.svg?height=400&width=300",
-    category: "Copas Metálicas",
-  },
-  {
-    id: 2,
-    name: "Trofeo Victoria",
-    description: "Trofeo elegante con figura de victoria alada y base personalizable.",
-    image: "/placeholder.svg?height=400&width=300",
-    category: "Trofeos",
-  },
-  {
-    id: 3,
-    name: "Medalla Olímpica",
-    description: "Medalla de metal con cinta personalizable y acabado brillante.",
-    image: "/placeholder.svg?height=400&width=300",
-    category: "Medallas",
-  },
-  {
-    id: 4,
-    name: "Plaqueta Conmemorativa",
-    description: "Plaqueta de cristal con grabado láser y base iluminada.",
-    image: "/placeholder.svg?height=400&width=300",
-    category: "Plaquetas",
-  },
-  {
-    id: 5,
-    name: "Placa Corporativa",
-    description: "Placa de metal con acabado mate y grabado personalizado.",
-    image: "/placeholder.svg?height=400&width=300",
-    category: "Placas",
-  },
-  {
-    id: 6,
-    name: "Set Ejecutivo Premium",
-    description: "Set de escritorio con bolígrafo, tarjetero y llavero personalizables.",
-    image: "/placeholder.svg?height=400&width=300",
-    category: "Regalos Empresariales",
-  },
-  {
-    id: 7,
-    name: "Portafolio Ejecutivo",
-    description: "Portafolio de cuero genuino con compartimentos y cierre seguro.",
-    image: "/placeholder.svg?height=400&width=300",
-    category: "Marroquinería",
-  },
-  {
-    id: 8,
-    name: "Copa Challenger",
-    description: "Copa metálica con asas y grabado personalizado.",
-    image: "/placeholder.svg?height=400&width=300",
-    category: "Copas Metálicas",
-  },
-]
 
 const categories = [
   "Todas",
@@ -79,31 +27,32 @@ const categories = [
   "Placas",
   "Regalos Empresariales",
   "Marroquinería",
-]
+];
 
 export default function Catalog() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("Todas")
-  const [selectedProduct, setSelectedProduct] = useState<any>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Todas");
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === "Todas" || product.category === selectedCategory
+      product.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "Todas" || product.category === selectedCategory;
 
-    return matchesSearch && matchesCategory
-  })
+    return matchesSearch && matchesCategory;
+  });
 
   const handleProductClick = (product: any) => {
-    setSelectedProduct(product)
-    setIsModalOpen(true)
-  }
+    setSelectedProduct(product);
+    setIsModalOpen(true);
+  };
 
   const closeModal = () => {
-    setIsModalOpen(false)
-  }
+    setIsModalOpen(false);
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -113,7 +62,7 @@ export default function Catalog() {
         staggerChildren: 0.1,
       },
     },
-  }
+  };
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
@@ -125,7 +74,7 @@ export default function Catalog() {
         stiffness: 100,
       },
     },
-  }
+  };
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -139,9 +88,12 @@ export default function Catalog() {
             transition={{ duration: 0.6 }}
             className="text-center mb-12"
           >
-            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gold">Catálogo de Productos</h1>
+            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gold">
+              Catálogo de Productos
+            </h1>
             <p className="text-lg text-gold-light/80 max-w-2xl mx-auto">
-              Explore nuestra colección de trofeos, medallas y reconocimientos de alta calidad
+              Explore nuestra colección de trofeos, medallas y reconocimientos
+              de alta calidad
             </p>
           </motion.div>
 
@@ -157,7 +109,10 @@ export default function Catalog() {
               />
             </div>
             <div className="w-full md:w-64">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <Select
+                value={selectedCategory}
+                onValueChange={setSelectedCategory}
+              >
                 <SelectTrigger className="bg-black border-gold/30 focus:border-gold text-gold-light">
                   <Filter className="h-4 w-4 mr-2 text-gold" />
                   <SelectValue placeholder="Categoría" />
@@ -194,19 +149,32 @@ export default function Catalog() {
                   className="bg-black border border-gold/30 rounded-lg overflow-hidden cursor-pointer transition-all hover:border-gold hover:shadow-[0_0_15px_rgba(208,177,110,0.3)]"
                 >
                   <div className="relative h-64 w-full">
-                    <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
+                    <Image
+                      src={product.image || "/placeholder.svg"}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
+                    />
                   </div>
                   <div className="p-4">
-                    <h3 className="text-lg font-medium text-gold mb-1">{product.name}</h3>
-                    <p className="text-sm text-gold-light/70 line-clamp-2">{product.description}</p>
-                    <div className="mt-3 text-xs text-gold-light/50">{product.category}</div>
+                    <h3 className="text-lg font-medium text-gold mb-1">
+                      {product.name}
+                    </h3>
+                    <p className="text-sm text-gold-light/70 line-clamp-2">
+                      {product.description}
+                    </p>
+                    <div className="mt-3 text-xs text-gold-light/50">
+                      {product.category}
+                    </div>
                   </div>
                 </motion.div>
               ))}
             </motion.div>
           ) : (
             <div className="text-center py-12">
-              <p className="text-gold-light/70 text-lg">No se encontraron productos que coincidan con su búsqueda.</p>
+              <p className="text-gold-light/70 text-lg">
+                No se encontraron productos que coincidan con su búsqueda.
+              </p>
             </div>
           )}
         </div>
@@ -214,8 +182,11 @@ export default function Catalog() {
 
       <Footer />
 
-      {isModalOpen && selectedProduct && <ProductModal product={selectedProduct} onClose={closeModal} />}
+      <AnimatePresence>
+        {isModalOpen && selectedProduct && (
+          <ProductModal product={selectedProduct} onClose={closeModal} />
+        )}
+      </AnimatePresence>
     </main>
-  )
+  );
 }
-
