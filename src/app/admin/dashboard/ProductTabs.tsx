@@ -9,7 +9,7 @@ interface ProductTabsProps {
   editingProduct: Product | null;
   handleEditProduct: (product: Product) => void;
   handleDeleteProduct: (productId: number) => void;
-  handleSaveProduct: (productData: any) => void;
+  handleSaveProduct: (productData: Product[]) => void;
   handleCancelForm: () => void;
 }
 

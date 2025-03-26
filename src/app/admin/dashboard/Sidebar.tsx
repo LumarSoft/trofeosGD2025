@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Home, Package, Users, BarChart, Settings, LogOut } from "lucide-react";
+import { Home, Package, Users, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
