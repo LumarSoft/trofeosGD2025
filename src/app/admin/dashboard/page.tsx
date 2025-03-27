@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useProducts from "./hooks/useProducts";
 import Sidebar from "./Sidebar";
 import AdminHeader from "./AdminHeader";
 import ProductTabs from "./ProductTabs";
+import Cookies from "js-cookie";
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+
   const {
     products,
     isFormOpen,
@@ -22,17 +25,59 @@ export default function AdminDashboard() {
 
   // Comprobar si el usuario está autenticado
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
-    if (!isAuthenticated) {
-      // Para fines de demostración, lo estableceremos en true cuando lleguemos a esta página
-      localStorage.setItem("isAuthenticated", "true");
-    }
+    const checkAuth = () => {
+      const token = Cookies.get("auth_token");
+      if (!token) {
+        router.push("/admin");
+        return;
+      }
+      setIsLoading(false);
+    };
+
+    checkAuth();
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated");
-    router.push("/admin");
+  const handleLogout = async () => {
+    try {
+      setIsLoading(true); // Mostrar loading mientras se cierra sesión
+
+      // Llamar a la API de logout
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Error al cerrar sesión");
+      }
+
+      // Eliminar la cookie en el cliente también
+      Cookies.remove("auth_token");
+
+      // Redirigir al login
+      router.push("/admin");
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      // Aun así, intentamos eliminar la cookie y redirigir
+      Cookies.remove("auth_token");
+      router.push("/admin");
+    }
   };
+
+  // Mostrar loading mientras se verifica la autenticación
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-black">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-gold mx-auto mb-4"></div>
+          <p className="text-gold-light">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black flex">

@@ -1,15 +1,32 @@
+"use client";
+
+import { useState } from "react";
 import { Plus, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface AdminHeaderProps {
   handleAddProduct: () => void;
-  handleLogout: () => void;
+  handleLogout: () => Promise<void>;
 }
 
 export default function AdminHeader({
   handleAddProduct,
   handleLogout,
 }: AdminHeaderProps) {
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const onLogout = async () => {
+    if (confirm("¿Estás seguro de que deseas cerrar sesión?")) {
+      setIsLoggingOut(true);
+      try {
+        await handleLogout();
+      } catch (error) {
+        console.error("Error al cerrar sesión:", error);
+        setIsLoggingOut(false);
+      }
+    }
+  };
+
   return (
     <div className="flex items-center justify-between mb-6">
       <h1 className="text-2xl font-bold text-gold">Panel de Administración</h1>
@@ -17,9 +34,14 @@ export default function AdminHeader({
         <Button
           variant="outline"
           className="border-gold/30 text-gold hover:bg-gold/10 md:hidden"
-          onClick={handleLogout}
+          onClick={onLogout}
+          disabled={isLoggingOut}
         >
-          <LogOut className="h-4 w-4" />
+          {isLoggingOut ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-gold"></div>
+          ) : (
+            <LogOut className="h-4 w-4" />
+          )}
         </Button>
         <Button
           className="bg-gold hover:bg-gold-dark text-black"

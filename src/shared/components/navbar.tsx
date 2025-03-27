@@ -17,7 +17,6 @@ export default function Navbar() {
   return (
     <header className="border-b border-gold/20 bg-black/90 backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4">
-        {/* Eliminé la altura fija h-16 para que se ajuste automáticamente */}
         <div className="flex items-center justify-between py-2">
           <Link href="/" className="flex items-center">
             <motion.div
@@ -31,7 +30,7 @@ export default function Navbar() {
                 alt="Trofeos GD - Desde 1989"
                 width={110}
                 height={0}
-                className="object-contain"
+                className="object-contain w-[85px] md:w-[110px]" // Tamaño más pequeño en móvil
                 priority
               />
             </motion.div>
