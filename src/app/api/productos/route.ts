@@ -7,13 +7,7 @@ const prisma = new PrismaClient();
 // GET - Obtener todos los productos
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const categoryId = searchParams.get("category_id");
-
-    const where = categoryId ? { category_id: parseInt(categoryId) } : {};
-
     const productos = await prisma.producto.findMany({
-      where,
       include: {
         categoria: {
           select: {
@@ -45,16 +39,26 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, description, price, stock, category_id, image_url } = body;
+    const { name, description, image_url, category_id } = body;
+
+    // Datos mínimos para crear un producto
+    const createData: any = {
+      name,
+      description,
+      image_url,
+    };
+
+    // Sólo agregamos la categoría si hay un category_id
+    if (category_id) {
+      createData.categoria = {
+        connect: { id: parseInt(category_id) },
+      };
+    }
 
     const producto = await prisma.producto.create({
-      data: {
-        name,
-        description,
-        price: parseFloat(price),
-        stock: parseInt(stock),
-        category_id: parseInt(category_id),
-        image_url,
+      data: createData,
+      include: {
+        categoria: true,
       },
     });
 
@@ -62,7 +66,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error al crear producto:", error);
     return NextResponse.json(
-      { message: "Error al crear producto" },
+      { message: "Error al crear producto", error: String(error) },
       { status: 500 }
     );
   } finally {

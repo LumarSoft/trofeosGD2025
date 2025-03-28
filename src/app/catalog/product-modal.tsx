@@ -24,6 +24,10 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
 
+    // Disparar evento personalizado para indicar que el modal está abierto
+    const openEvent = new Event("product-modal-open");
+    window.dispatchEvent(openEvent);
+
     // Función para manejar clicks fuera del modal
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -48,8 +52,17 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
       document.body.style.overflow = "unset";
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
+
+      // Disparar evento personalizado para indicar que el modal se ha cerrado
+      const closeEvent = new Event("product-modal-close");
+      window.dispatchEvent(closeEvent);
     };
   }, [onClose]);
+
+  // Función personalizada para cerrar y disparar el evento
+  const handleClose = () => {
+    onClose();
+  };
 
   return (
     <motion.div
@@ -59,18 +72,17 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
       transition={{ duration: 0.2 }}
       className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
     >
-      {/* Barra superior móvil */}
+      {/* Barra superior móvil - Modificada para tener solo el botón Volver */}
       <div className="fixed top-0 left-0 right-0 bg-black border-b border-gold/30 p-3 flex items-center justify-between md:hidden z-[60]">
-        <button onClick={onClose} className="flex items-center text-gold">
+        <button onClick={handleClose} className="flex items-center text-gold">
           <ChevronLeft className="h-5 w-5 mr-1" />
           <span>Volver</span>
         </button>
         <span className="text-gold font-medium line-clamp-1">
           {product.name}
         </span>
-        <button onClick={onClose} className="text-gold p-1">
-          <X className="h-5 w-5" />
-        </button>
+        <div className="w-5"></div>{" "}
+        {/* Espacio vacío para mantener el centrado */}
       </div>
 
       <motion.div
@@ -92,7 +104,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
             variant="ghost"
             size="icon"
             className="absolute right-2 top-2 z-10 text-gold hover:bg-gold/10 rounded-full"
-            onClick={onClose}
+            onClick={handleClose}
           >
             <X className="h-6 w-6" />
           </Button>

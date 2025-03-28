@@ -1,7 +1,5 @@
 "use client";
 
-import type React from "react";
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -39,7 +37,11 @@ export default function AdminLogin() {
       }
 
       // Guardar el token en cookie
-      Cookies.set("auth_token", data.token, { expires: 1 }); // Expira en 1 día
+      Cookies.set("auth_token", data.token, {
+        expires: 1,
+        path: "/",
+        sameSite: "strict",
+      });
 
       // Redirigir al dashboard
       router.push("/admin/dashboard");

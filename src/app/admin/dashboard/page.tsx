@@ -2,18 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
+import { toast } from "sonner";
 import useProducts from "./hooks/useProducts";
 import Sidebar from "./Sidebar";
 import AdminHeader from "./AdminHeader";
 import ProductTabs from "./ProductTabs";
-import Cookies from "js-cookie";
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("products");
 
   const {
     products,
+    categories,
     isFormOpen,
     editingProduct,
     handleAddProduct,
@@ -59,6 +62,7 @@ export default function AdminDashboard() {
 
       // Redirigir al login
       router.push("/admin");
+      toast.success("Sesión cerrada correctamente");
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
       // Aun así, intentamos eliminar la cookie y redirigir
@@ -87,19 +91,19 @@ export default function AdminDashboard() {
       {/* Main content */}
       <div className="flex-1 overflow-auto">
         <div className="p-4 md:p-6">
-          <AdminHeader
-            handleAddProduct={handleAddProduct}
-            handleLogout={handleLogout}
-          />
+          <AdminHeader handleLogout={handleLogout} />
 
           <ProductTabs
             products={products}
+            categories={categories}
             isFormOpen={isFormOpen}
             editingProduct={editingProduct}
             handleEditProduct={handleEditProduct}
             handleDeleteProduct={handleDeleteProduct}
             handleSaveProduct={handleSaveProduct}
             handleCancelForm={handleCancelForm}
+            handleAddProduct={handleAddProduct}
+            onTabChange={setActiveTab}
           />
         </div>
       </div>

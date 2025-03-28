@@ -19,7 +19,7 @@ export default function Footer() {
                 target="_blank"
                 aria-label="Instagram"
               >
-                <Instagram className="h-5 w-5" />
+                <Instagram className="h-8 w-8" />
               </Link>
             </div>
           </div>

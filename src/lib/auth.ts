@@ -1,4 +1,3 @@
-// lib/auth.ts
 import { NextRequest } from "next/server";
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
@@ -13,18 +12,35 @@ export async function auth(
   request: Request | NextRequest
 ): Promise<UserPayload | null> {
   try {
-    // Intentar obtener token de cookie
-    const cookieStore = cookies();
-    const tokenFromCookie = cookieStore.get("auth_token")?.value;
+    let token = null;
 
     // Intentar obtener token del encabezado Authorization
     const authHeader = request.headers.get("Authorization");
-    const tokenFromHeader =
-      authHeader && authHeader.startsWith("Bearer ")
-        ? authHeader.substring(7)
-        : null;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    }
 
-    const token = tokenFromCookie || tokenFromHeader;
+    // Si no hay token en el encabezado, intentar obtenerlo de la cookie
+    if (!token) {
+      // Intentar obtener de la cookie usando Next.js cookies()
+      try {
+        const cookieStore = cookies();
+        token = cookieStore.get("auth_token")?.value;
+      } catch (error) {
+        // Si hay error (puede ocurrir en API routes), intentar parsear manualmente
+        const cookieHeader = request.headers.get("cookie");
+        if (cookieHeader) {
+          const cookieArray = cookieHeader.split(";");
+          for (let cookie of cookieArray) {
+            const [name, value] = cookie.trim().split("=");
+            if (name === "auth_token") {
+              token = value;
+              break;
+            }
+          }
+        }
+      }
+    }
 
     if (!token) {
       return null;

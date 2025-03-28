@@ -55,14 +55,7 @@ export default function Sidebar({ router, handleLogout }: SidebarProps) {
             <Home className="mr-2 h-4 w-4" />
             Inicio
           </Button>
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-gold-light/80 hover:text-gold hover:bg-gold/10"
-            onClick={() => router.push("/admin/productos")}
-          >
-            <Package className="mr-2 h-4 w-4" />
-            Productos
-          </Button>
+
           <Button
             variant="ghost"
             className="w-full justify-start text-gold-light/80 hover:text-gold hover:bg-gold/10"

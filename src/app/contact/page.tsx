@@ -3,17 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import {
-  Phone,
-  Mail,
-  MapPin,
-  Clock,
-  Send,
-  Instagram,
-  Facebook,
-  Twitter,
-  ArrowLeft,
-} from "lucide-react";
+import { Phone, Mail, MapPin, Clock, Send, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 

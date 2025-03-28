@@ -1,18 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface AdminHeaderProps {
-  handleAddProduct: () => void;
   handleLogout: () => Promise<void>;
 }
 
-export default function AdminHeader({
-  handleAddProduct,
-  handleLogout,
-}: AdminHeaderProps) {
+export default function AdminHeader({ handleLogout }: AdminHeaderProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const onLogout = async () => {
@@ -42,13 +38,6 @@ export default function AdminHeader({
           ) : (
             <LogOut className="h-4 w-4" />
           )}
-        </Button>
-        <Button
-          className="bg-gold hover:bg-gold-dark text-black"
-          onClick={handleAddProduct}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo Producto
         </Button>
       </div>
     </div>

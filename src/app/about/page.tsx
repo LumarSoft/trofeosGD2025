@@ -85,7 +85,7 @@ export default function AboutPage() {
                 Más de tres décadas premiando la excelencia
               </h2>
               <p className="text-gold-light/80 mb-6">
-                Desde 1995, Trofeos GD ha sido sinónimo de calidad y prestigio
+                Desde 1989, Trofeos GD ha sido sinónimo de calidad y prestigio
                 en el mundo de los reconocimientos deportivos y corporativos. Lo
                 que comenzó como un pequeño taller familiar en Rosario, se ha
                 convertido en una empresa referente en el sector, manteniendo
@@ -100,7 +100,7 @@ export default function AboutPage() {
               </p>
               <div className="flex items-center space-x-2 text-gold">
                 <History className="h-5 w-5" />
-                <span className="font-medium">Fundada en 1995</span>
+                <span className="font-medium">Fundada en 1989</span>
               </div>
             </motion.div>
 
@@ -206,77 +206,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Equipo - Con imágenes optimizadas */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <motion.div
-            className="text-center mb-12"
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={fadeIn}
-          >
-            <h2 className="text-3xl font-semibold text-gold mb-4">
-              Nuestro Equipo
-            </h2>
-            <p className="text-gold-light/80 max-w-3xl mx-auto">
-              Profesionales apasionados que ponen su talento y experiencia al
-              servicio de cada proyecto.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              {
-                name: "Carlos García",
-                position: "Director General",
-                imageUrl: "/placeholder.svg",
-              },
-              {
-                name: "Ana Martínez",
-                position: "Diseñadora",
-                imageUrl: "/placeholder.svg",
-              },
-              {
-                name: "Miguel Rodríguez",
-                position: "Maestro Artesano",
-                imageUrl: "/placeholder.svg",
-              },
-              {
-                name: "Laura Sánchez",
-                position: "Atención al Cliente",
-                imageUrl: "/placeholder.svg",
-              },
-            ].map((member, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="text-center"
-              >
-                <div className="relative h-64 w-full rounded-lg overflow-hidden border border-gold/20 shadow-lg mb-4">
-                  <Image
-                    src={member.imageUrl}
-                    alt={`${member.name} - ${member.position}`}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 25vw"
-                    className="object-cover"
-                    loading="lazy"
-                    quality={70}
-                    placeholder="blur"
-                    blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAGAAoDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAABgcI/8QAIhAAAgICAQQDAAAAAAAAAAAAAQIDBAUGESEABxITFDFR/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAT/xAAcEQACAgIDAAAAAAAAAAAAAAABAgADBBETIUH/2gAMAwEAAhEDEQA/AMxsOezcFZb+PiEsXwKHUeC/hVVlLvz9sqjkAk9AdLZDK3bdrHVZmtZB2nZInIKsxAYkfnHUDpNa5Z86WoWQljPr8lXryonq+KwkBIOyDwQQCP7ozt2dz+bDwVeS7DDyokjZT3lZTyQAOPBeCSeOnBwaiAOEI0o7a2aFSfHIqbMsSzP/2Q=="
-                  />
-                </div>
-                <h3 className="text-xl font-medium text-gold">{member.name}</h3>
-                <p className="text-gold-light/70">{member.position}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Testimonios */}
       <section className="py-16">
         <div className="container mx-auto px-4">
@@ -356,7 +285,7 @@ export default function AboutPage() {
             que están a la altura de tus logros.
           </p>
           <Link href="/contact">
-            <Button className="bg-gold hover:bg-gold-dark text-black font-medium px-8 py-3 rounded-md transition-colors">
+            <Button className="bg-gold hover:bg-gold-dark text-black font-medium px-10 py-6 rounded-md transition-colors text-lg">
               Contacta con nosotros
             </Button>
           </Link>

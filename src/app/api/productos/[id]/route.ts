@@ -55,17 +55,44 @@ export async function PUT(
 
     const id = parseInt(params.id);
     const body = await request.json();
-    const { name, description, price, stock, category_id, image_url } = body;
+    const { name, description, stock, category_id, image_url } = body;
+
+    // Obtener el producto actual para saber si necesitamos desconectar la categoría
+    const currentProduct = await prisma.producto.findUnique({
+      where: { id },
+      include: { categoria: true },
+    });
+
+    // Preparar datos de actualización
+    const updateData = {
+      name,
+      description,
+      stock: stock !== undefined ? parseInt(stock) : undefined,
+      image_url,
+    };
+
+    // Manejar la relación de categoría
+    if (category_id) {
+      // Si hay un category_id, conectar con esa categoría
+      Object.assign(updateData, {
+        categoria: {
+          connect: { id: parseInt(category_id) },
+        },
+      });
+    } else if (currentProduct?.categoria) {
+      // Si no hay category_id pero había una categoría conectada, desconectarla
+      Object.assign(updateData, {
+        categoria: {
+          disconnect: true,
+        },
+      });
+    }
 
     const producto = await prisma.producto.update({
       where: { id },
-      data: {
-        name,
-        description,
-        price: parseFloat(price),
-        stock: parseInt(stock),
-        category_id: parseInt(category_id),
-        image_url,
+      data: updateData,
+      include: {
+        categoria: true,
       },
     });
 

@@ -45,47 +45,59 @@ export default function ProductsTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-gold/10">
-            {products.map((product) => (
-              <tr key={product.id} className="hover:bg-gold/5">
-                <td className="px-4 py-3">
-                  <div className="relative h-12 w-12 rounded overflow-hidden">
-                    <Image
-                      src={product.image || "/placeholder.svg"}
-                      alt={product.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-gold-light">{product.name}</td>
-                <td className="px-4 py-3 text-gold-light/70">
-                  {product.category}
-                </td>
-                <td className="px-4 py-3 text-gold-light/70 max-w-xs truncate">
-                  {product.description}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-gold-light/70 hover:text-gold hover:bg-gold/10"
-                      onClick={() => handleEditProduct(product)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-gold-light/70 hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDeleteProduct(product.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+            {products.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={7}
+                  className="px-4 py-6 text-center text-gold-light/70"
+                >
+                  No hay productos disponibles
                 </td>
               </tr>
-            ))}
+            ) : (
+              products.map((product) => (
+                <tr key={product.id} className="hover:bg-gold/5">
+                  <td className="px-4 py-3">
+                    <div className="relative h-12 w-12 rounded overflow-hidden">
+                      <Image
+                        src={product.image || "/placeholder.svg"}
+                        alt={product.name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-gold-light">{product.name}</td>
+                  <td className="px-4 py-3 text-gold-light/70">
+                    {product.category}
+                  </td>
+
+                  <td className="px-4 py-3 text-gold-light/70 max-w-xs truncate">
+                    {product.description}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-gold-light/70 hover:text-gold hover:bg-gold/10"
+                        onClick={() => handleEditProduct(product)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-gold-light/70 hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteProduct(product.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

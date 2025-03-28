@@ -1,69 +1,67 @@
-// middleware.ts
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import jwt from "jsonwebtoken";
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
+  // Verificar la ruta actual
+  const pathname = request.nextUrl.pathname;
+
+  // Obtener el token de autenticación
   const token = request.cookies.get("auth_token")?.value;
 
-  // Verificar si la ruta requiere autenticación
-  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
-  const isLoginRoute = request.nextUrl.pathname === "/admin";
-  const isLogoutRoute = request.nextUrl.pathname === "/api/auth/logout";
-  const isApiAuthRoute = request.nextUrl.pathname.startsWith("/api/auth");
+  // Casos específicos según la ruta
 
-  // Para la ruta de logout, permitir el acceso
-  if (isLogoutRoute) {
-    return NextResponse.next();
-  }
-
-  // Para otras rutas de API de autenticación, permitir el acceso
-  if (isApiAuthRoute && !isLogoutRoute) {
-    return NextResponse.next();
-  }
-
-  // Si es la página de login, y ya está autenticado, redirigir al dashboard
-  if (isLoginRoute && token) {
-    try {
-      const payload = verifyToken(token);
-      // Solo redirigir si es administrador
-      if (payload.isAdmin) {
-        return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+  // Caso 1: Exactamente la página de login (/admin)
+  if (pathname === "/admin") {
+    // Si ya está autenticado, redirigir al dashboard
+    if (token) {
+      try {
+        const payload = verifyToken(token);
+        if (payload.isAdmin) {
+          return NextResponse.redirect(
+            new URL("/admin/dashboard", request.url)
+          );
+        }
+      } catch (error) {
+        // Token inválido - dejarlo continuar a la página de login y eliminar el token
+        const response = NextResponse.next();
+        response.cookies.delete("auth_token");
+        return response;
       }
-    } catch (error) {
-      // Si el token no es válido, eliminar la cookie
-      const response = NextResponse.next();
-      response.cookies.delete("auth_token");
-      return response;
     }
+    // Si no está autenticado, mostrar la página de login normalmente
+    return NextResponse.next();
   }
 
-  // Si es una ruta de admin (excepto login) y no hay token, redirigir al login
-  if (isAdminRoute && !isLoginRoute && !token) {
-    return NextResponse.redirect(new URL("/admin", request.url));
-  }
+  // Caso 2: Cualquier ruta dentro del panel admin (/admin/*)
+  if (pathname.startsWith("/admin/")) {
+    // Si no tiene token, redirigir al login
+    if (!token) {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
 
-  // Si es una ruta de admin (excepto login) y hay token, verificar que sea válido
-  if (isAdminRoute && !isLoginRoute && token) {
+    // Si tiene token, verificar que sea válido
     try {
       const payload = verifyToken(token);
 
-      // Verificar si el usuario es administrador según el token
+      // Verificar que sea admin
       if (!payload.isAdmin) {
         const response = NextResponse.redirect(new URL("/admin", request.url));
         response.cookies.delete("auth_token");
         return response;
       }
 
+      // Si todo está correcto, permitir acceso
       return NextResponse.next();
     } catch (error) {
-      // Si el token no es válido, eliminar la cookie y redirigir al login
+      // Token inválido
       const response = NextResponse.redirect(new URL("/admin", request.url));
       response.cookies.delete("auth_token");
       return response;
     }
   }
 
+  // Para cualquier otra ruta (fuera de /admin*), permitir acceso sin verificar
   return NextResponse.next();
 }
 
@@ -77,7 +75,7 @@ function verifyToken(token: string) {
   }
 }
 
-// Configurar las rutas que el middleware debe procesar
+// Configurar EXACTAMENTE qué rutas debe interceptar el middleware
 export const config = {
-  matcher: ["/admin/:path*", "/api/auth/:path*"],
+  matcher: ["/admin", "/admin/:path*"],
 };
