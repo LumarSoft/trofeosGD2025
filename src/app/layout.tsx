@@ -23,7 +23,7 @@ export default function RootLayout({
         {children}
 
         <WhatsAppButton
-          phoneNumber="+5491112345678"
+          phoneNumber="+5493416615774"
           message="Hola! Estoy interesado en conocer más sobre sus trofeos y productos. ¿Podría darme más información?"
         />
       </body>

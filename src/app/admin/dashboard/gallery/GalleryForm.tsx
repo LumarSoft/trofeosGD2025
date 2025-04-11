@@ -1,14 +1,12 @@
 "use client";
 
-import type React from "react";
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import {
   Upload,
-  Layers,
-  TagIcon,
+  Building,
+  Calendar,
   FileText,
   AlertTriangle,
   X,
@@ -19,13 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -34,34 +25,46 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useDropzone } from "react-dropzone";
-import { AdminProductFormProps } from "@/shared/types/IPproduct";
+import { toast } from "sonner";
 
-export default function AdminProductForm({
-  product,
-  categories = [],
+interface GalleryItem {
+  id?: number;
+  company: string;
+  description: string;
+  date: string;
+  image_url: string;
+}
+
+interface GalleryFormProps {
+  onSave: (galleryItem: any) => void;
+  onCancel: () => void;
+  initialData?: GalleryItem | null;
+  maxFileSize?: number;
+}
+
+export default function GalleryForm({
   onSave,
   onCancel,
+  initialData = null,
   maxFileSize = 2 * 1024 * 1024, // 2MB por defecto
-}: AdminProductFormProps) {
+}: GalleryFormProps) {
   // Estado principal del formulario
-  const [formData, setFormData] = useState({
-    id: undefined as number | undefined,
-    name: "",
+  const [formData, setFormData] = useState<GalleryItem>({
+    company: "",
     description: "",
-    category: "",
-    category_id: undefined as number | undefined,
-    category_name: "",
-    image: "/placeholder.svg",
+    date: new Date().toISOString().split("T")[0],
+    image_url: "/placeholder.svg",
   });
 
   // Generamos un ID de sesión único para este formulario
   const [sessionId] = useState(
-    `session_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
+    `gallery_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
   );
 
   // Estados para la gestión de imágenes
   const [uploading, setUploading] = useState(false);
   const [imageHover, setImageHover] = useState(false);
+  const [imageChanged, setImageChanged] = useState(false);
   const [imageInfo, setImageInfo] = useState<{
     name: string;
     size: number;
@@ -73,14 +76,24 @@ export default function AdminProductForm({
   const [fileSizeErrorMessage, setFileSizeErrorMessage] = useState("");
   const [sizeErrorDialogOpen, setSizeErrorDialogOpen] = useState(false);
 
-  // Estado para validación y diálogos
-  const [validationDialogOpen, setValidationDialogOpen] = useState(false);
+  // Estado para validación
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [generalErrorDialogOpen, setGeneralErrorDialogOpen] = useState(false);
-  const [generalErrorMessage, setGeneralErrorMessage] = useState("");
+  const [validationDialogOpen, setValidationDialogOpen] = useState(false);
 
-  // Ref para el input de archivo (nos permitirá resetear su valor)
+  // Ref para el input de archivo
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Si hay initialData, cargar en el formulario
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        ...initialData,
+        date: initialData.date
+          ? new Date(initialData.date).toISOString().split("T")[0]
+          : new Date().toISOString().split("T")[0],
+      });
+    }
+  }, [initialData]);
 
   // Utilidad para formatear tamaños de archivo
   const formatFileSize = (bytes: number): string => {
@@ -89,13 +102,12 @@ export default function AdminProductForm({
     else return (bytes / (1024 * 1024)).toFixed(2) + " MB";
   };
 
-  // Función que maneja explícitamente los errores de tamaño de archivo
+  // Función que maneja errores de tamaño de archivo
   const handleFileSizeError = (file: File) => {
     console.log(
       `Error de tamaño: ${file.name} (${file.size} bytes) excede ${maxFileSize} bytes`
     );
 
-    // Establecemos todos los estados de error
     setFileSizeError(true);
     setFileSizeErrorMessage(
       `El archivo "${file.name}" (${formatFileSize(
@@ -104,7 +116,6 @@ export default function AdminProductForm({
     );
     setSizeErrorDialogOpen(true);
 
-    // Reseteamos el input de archivo para permitir un nuevo intento
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -117,7 +128,6 @@ export default function AdminProductForm({
       if (fileRejections.length > 0) {
         const rejection = fileRejections[0];
         const file = rejection.file;
-        // Si el error es de tamaño, manejarlo
         if (rejection.errors.some((e: any) => e.code === "file-too-large")) {
           handleFileSizeError(file);
           return;
@@ -142,7 +152,7 @@ export default function AdminProductForm({
     [maxFileSize]
   );
 
-  // Configuración de react-dropzone con validación explícita de tamaño
+  // Configuración de react-dropzone
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
@@ -163,50 +173,6 @@ export default function AdminProductForm({
     },
   });
 
-  // Efecto para cargar datos del producto existente
-  useEffect(() => {
-    if (product) {
-      console.log("Producto cargado para editar:", product);
-      console.log("Categorías disponibles:", categories);
-
-      // Buscar la categoría por ID
-      const categoryInfo = categories.find((c) => c.id === product.category_id);
-      const categoryName = categoryInfo
-        ? categoryInfo.name
-        : product.category || "";
-
-      setFormData({
-        id: product.id,
-        name: product.name || "",
-        description: product.description || "",
-        category: categoryInfo ? String(categoryInfo.id) : "",
-        category_id: product.category_id,
-        category_name: categoryName,
-        image: product.image || "/placeholder.svg",
-      });
-
-      // Si hay una imagen y no es el placeholder, obtener información
-      if (product.image && product.image !== "/placeholder.svg") {
-        setImageInfo({
-          name: product.image.split("/").pop() || "Imagen existente",
-          size: 0,
-          sizeFormatted: "Imagen existente",
-        });
-      }
-    }
-
-    // Limpieza al desmontar
-    return () => {
-      fetch("/api/finish-product-session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ sessionId, save: false }),
-      }).catch((err) => console.error("Error al limpiar sesión:", err));
-    };
-  }, [product, sessionId, categories]);
-
   // Manejar cambios en inputs de texto
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -215,27 +181,9 @@ export default function AdminProductForm({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Manejar cambios en la categoría seleccionada
-  const handleCategoryChange = (value: string) => {
-    const selectedCategoryId = parseInt(value, 10);
-    const selectedCategory = categories.find(
-      (c) => c.id === selectedCategoryId
-    );
-
-    if (selectedCategory) {
-      setFormData((prev) => ({
-        ...prev,
-        category: value,
-        category_id: selectedCategory.id,
-        category_name: selectedCategory.name,
-      }));
-    }
-  };
-
   // Subir archivo al servidor
   const handleFileUpload = async (file: File) => {
     try {
-      // Verificación de seguridad adicional del tamaño del archivo
       if (file.size > maxFileSize) {
         handleFileSizeError(file);
         return;
@@ -257,6 +205,7 @@ export default function AdminProductForm({
       const formDataUpload = new FormData();
       formDataUpload.append("file", file);
       formDataUpload.append("sessionId", sessionId);
+      formDataUpload.append("folder", "gallery"); // Carpeta específica para galería
 
       // Enviar el archivo al servidor
       const response = await fetch("/api/upload", {
@@ -274,15 +223,16 @@ export default function AdminProductForm({
       // Actualizar el formulario con la URL de la imagen subida
       setFormData((prev) => ({
         ...prev,
-        image: data.url,
-        imagePath: data.path,
+        image_url: data.url,
       }));
+
+      // Marcar que la imagen ha cambiado
+      setImageChanged(true);
     } catch (error) {
       console.error("Error al subir imagen:", error);
-      setGeneralErrorMessage(
+      toast.error(
         error instanceof Error ? error.message : "No se pudo subir la imagen"
       );
-      setGeneralErrorDialogOpen(true);
       setImageInfo(null);
     } finally {
       setUploading(false);
@@ -317,10 +267,11 @@ export default function AdminProductForm({
   const handleRemoveImage = () => {
     setFormData((prev) => ({
       ...prev,
-      image: "/placeholder.svg",
+      image_url: "/placeholder.svg",
     }));
     setImageInfo(null);
     setFileSizeError(false);
+    setImageChanged(true);
     // Resetear el input de archivo también
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -331,16 +282,16 @@ export default function AdminProductForm({
   const validateForm = (): boolean => {
     const errors: string[] = [];
 
-    if (!formData.name.trim()) {
-      errors.push("El nombre del producto es obligatorio");
-    }
-
-    if (!formData.category) {
-      errors.push("Debe seleccionar una categoría");
+    if (!formData.company.trim()) {
+      errors.push("El nombre de la empresa es obligatorio");
     }
 
     if (!formData.description.trim()) {
-      errors.push("La descripción del producto es obligatoria");
+      errors.push("La descripción es obligatoria");
+    }
+
+    if (formData.image_url === "/placeholder.svg" && !initialData) {
+      errors.push("Debe subir una imagen");
     }
 
     if (errors.length > 0) {
@@ -362,110 +313,65 @@ export default function AdminProductForm({
     }
 
     try {
-      // Comprobar si la imagen es temporal con condiciones mejoradas
-      const isTemporaryImage =
-        formData.image &&
-        formData.image !== "/placeholder.svg" &&
-        (formData.image.includes("/temp/") ||
-          formData.image.includes("temp%2F") ||
-          formData.image.includes("/productos/temp/"));
+      setUploading(true);
 
-      if (isTemporaryImage) {
-        setUploading(true);
-        console.log("Procesando imagen temporal:", formData.image);
+      // Si estamos editando y la imagen no ha cambiado, simplemente enviamos los datos actuales
+      if (initialData && !imageChanged) {
+        onSave(formData);
+        return;
+      }
 
-        // Confirmar la sesión y subir la imagen a Supabase
-        const response = await fetch("/api/finish-product-session", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            sessionId,
-            save: true,
-            path: formData.image,
-          }),
-        });
+      // Si hay una nueva imagen y no es el placeholder, procesarla
+      if (
+        formData.image_url &&
+        formData.image_url !== "/placeholder.svg" &&
+        imageChanged
+      ) {
+        // Verificar si la imagen es una URL temporal que necesita ser procesada
+        if (formData.image_url.includes("/temp/")) {
+          // Confirmar la sesión y subir la imagen a Supabase
+          const response = await fetch("/api/finish-gallery-session", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              sessionId,
+              save: true,
+              path: formData.image_url,
+            }),
+          });
 
-        const data = await response.json();
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Error al procesar la imagen");
+          }
 
-        if (response.ok && data.success) {
-          console.log("Imagen procesada correctamente:", data.finalUrl);
-          // Si se devuelve URL de Supabase, usarla
+          const data = await response.json();
+
+          // Si se devuelve URL final, usarla
           const finalData = {
             ...formData,
-            image: data.finalUrl,
-            category: formData.category_name,
+            image_url: data.finalUrl || formData.image_url,
           };
+
           onSave(finalData);
         } else {
-          // Si hay error con Supabase pero hay URL de fallback
-          if (data.fallbackUrl) {
-            console.warn(
-              "Usando URL de imagen local debido a error en Supabase:",
-              data.message
-            );
-
-            const finalData = {
-              ...formData,
-              image: data.fallbackUrl,
-              category: formData.category_name,
-            };
-
-            setGeneralErrorMessage(
-              `Advertencia: La imagen se guardará localmente debido a un error con Supabase. El producto funcionará pero se recomienda volver a intentarlo más tarde.\n\nError: ${data.message}`
-            );
-            setGeneralErrorDialogOpen(true);
-
-            onSave(finalData);
-          } else {
-            // Error sin fallback
-            throw new Error(data.message || "Error al procesar la imagen");
-          }
+          // Si ya es una URL permanente o externa
+          onSave(formData);
         }
       } else {
-        console.log("No hay imagen temporal que procesar o es placeholder");
-        // Si no hay imagen nueva o es el placeholder
-        const finalData = {
-          ...formData,
-          category: formData.category_name,
-        };
-        onSave(finalData);
+        // Si no hay imagen nueva o se eliminó, usar los datos actuales
+        onSave(formData);
       }
     } catch (error) {
-      console.error("Error al finalizar la sesión:", error);
-      setGeneralErrorMessage(
-        `Error al guardar el producto: ${
-          error instanceof Error ? error.message : "Error desconocido"
-        }`
+      console.error("Error al guardar la imagen:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Error al guardar la imagen"
       );
-      setGeneralErrorDialogOpen(true);
     } finally {
       setUploading(false);
     }
-  };
-
-  // Cancelar y limpiar imágenes temporales
-  const handleCancel = async () => {
-    try {
-      await fetch("/api/finish-product-session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ sessionId, save: false }),
-      });
-    } catch (error) {
-      console.error("Error al cancelar la sesión:", error);
-    } finally {
-      onCancel();
-    }
-  };
-
-  // Cerrar el diálogo de error de tamaño
-  const handleCloseSizeErrorDialog = () => {
-    setSizeErrorDialogOpen(false);
-    setFileSizeError(false);
   };
 
   return (
@@ -476,17 +382,8 @@ export default function AdminProductForm({
         className="border border-gold/30 rounded-lg p-6 bg-black/50 backdrop-blur-sm shadow-[0_5px_30px_rgba(208,177,110,0.1)]"
       >
         <h2 className="text-2xl font-bold text-gold mb-6 flex items-center">
-          {product ? (
-            <>
-              <FileText className="mr-2 h-5 w-5" />
-              Editar Producto
-            </>
-          ) : (
-            <>
-              <FileText className="mr-2 h-5 w-5" />
-              Nuevo Producto
-            </>
-          )}
+          <FileText className="mr-2 h-5 w-5" />
+          {initialData ? "Editar Imagen de Galería" : "Nueva Imagen de Galería"}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-8">
@@ -508,14 +405,14 @@ export default function AdminProductForm({
                 >
                   <input {...getInputProps()} />
                   <Image
-                    src={formData.image || "/placeholder.svg"}
-                    alt="Vista previa del producto"
+                    src={formData.image_url || "/placeholder.svg"}
+                    alt="Vista previa de la imagen"
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
 
                   {/* Botón de eliminación de imagen */}
-                  {formData.image !== "/placeholder.svg" && (
+                  {formData.image_url !== "/placeholder.svg" && (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -629,50 +526,38 @@ export default function AdminProductForm({
             <div className="md:col-span-2 space-y-6">
               <div className="space-y-2">
                 <Label
-                  htmlFor="name"
+                  htmlFor="company"
                   className="text-gold-light flex items-center font-medium"
                 >
-                  <TagIcon className="h-4 w-4 mr-2 opacity-70" />
-                  Nombre del producto *
+                  <Building className="h-4 w-4 mr-2 opacity-70" />
+                  Empresa Cliente *
                 </Label>
                 <Input
-                  id="name"
-                  name="name"
-                  value={formData.name}
+                  id="company"
+                  name="company"
+                  value={formData.company}
                   onChange={handleChange}
                   className="bg-black/60 border-gold/30 focus:border-gold text-gold-light transition-all duration-300 focus:shadow-[0_0_15px_rgba(208,177,110,0.15)] h-11"
-                  placeholder="Ingrese el nombre del producto"
+                  placeholder="Nombre de la empresa para la que se hizo el trabajo"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label
-                  htmlFor="category"
+                  htmlFor="date"
                   className="text-gold-light flex items-center font-medium"
                 >
-                  <Layers className="h-4 w-4 mr-2 opacity-70" />
-                  Categoría *
+                  <Calendar className="h-4 w-4 mr-2 opacity-70" />
+                  Fecha del Proyecto
                 </Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={handleCategoryChange}
-                  defaultValue={formData.category}
-                >
-                  <SelectTrigger className="bg-black/60 border-gold/30 focus:border-gold text-gold-light transition-all duration-300 focus:shadow-[0_0_15px_rgba(208,177,110,0.15)] h-11">
-                    <SelectValue placeholder="Seleccione una categoría" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-black border-gold/30">
-                    {categories.map((category) => (
-                      <SelectItem
-                        key={category.id}
-                        value={String(category.id)}
-                        className="text-gold-light hover:bg-gold/10 focus:bg-gold/10"
-                      >
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="date"
+                  name="date"
+                  type="date"
+                  value={formData.date}
+                  onChange={handleChange}
+                  className="bg-black/60 border-gold/30 focus:border-gold text-gold-light transition-all duration-300 focus:shadow-[0_0_15px_rgba(208,177,110,0.15)] h-11"
+                />
               </div>
 
               <div className="space-y-2">
@@ -681,7 +566,7 @@ export default function AdminProductForm({
                   className="text-gold-light flex items-center font-medium"
                 >
                   <FileText className="h-4 w-4 mr-2 opacity-70" />
-                  Descripción *
+                  Descripción del Proyecto *
                 </Label>
                 <Textarea
                   id="description"
@@ -689,7 +574,7 @@ export default function AdminProductForm({
                   value={formData.description}
                   onChange={handleChange}
                   className="bg-black/60 border-gold/30 focus:border-gold text-gold-light min-h-[150px] transition-all duration-300 focus:shadow-[0_0_15px_rgba(208,177,110,0.15)]"
-                  placeholder="Ingrese la descripción del producto"
+                  placeholder="Describe los trofeos realizados para esta empresa"
                 />
               </div>
 
@@ -704,15 +589,24 @@ export default function AdminProductForm({
               type="button"
               variant="outline"
               className="border-gold/30 text-gold hover:bg-gold/10 transition-all duration-300 hover:shadow-[0_0_15px_rgba(208,177,110,0.1)] h-11"
-              onClick={handleCancel}
+              onClick={onCancel}
+              disabled={uploading}
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               className="bg-gold hover:bg-gold-dark text-black font-medium transition-all duration-300 hover:shadow-[0_0_15px_rgba(208,177,110,0.3)] h-11"
+              disabled={uploading}
             >
-              {product ? "Actualizar" : "Guardar"}
+              {uploading ? (
+                <div className="flex items-center">
+                  <div className="h-4 w-4 border-t-2 border-b-2 border-black rounded-full animate-spin mr-2"></div>
+                  <span>Guardando...</span>
+                </div>
+              ) : (
+                "Guardar"
+              )}
             </Button>
           </div>
         </form>
@@ -752,29 +646,26 @@ export default function AdminProductForm({
         </DialogContent>
       </Dialog>
 
-      {/* Diálogo de errores generales */}
-      <Dialog
-        open={generalErrorDialogOpen}
-        onOpenChange={setGeneralErrorDialogOpen}
-      >
+      {/* Diálogo de error de tamaño de archivo */}
+      <Dialog open={sizeErrorDialogOpen} onOpenChange={setSizeErrorDialogOpen}>
         <DialogContent className="bg-black border border-gold/30 text-gold-light">
           <DialogHeader>
             <DialogTitle className="flex items-center text-xl text-gold">
               <AlertTriangle className="mr-2 h-5 w-5 text-yellow-500" />
-              Error
+              Tamaño de archivo excedido
             </DialogTitle>
           </DialogHeader>
           <DialogDescription className="text-gold-light/80">
-            <div className="py-2 text-gold-light/90 whitespace-pre-line">
-              {generalErrorMessage}
+            <div className="py-2 text-gold-light/90">
+              {fileSizeErrorMessage}
             </div>
           </DialogDescription>
           <DialogFooter>
             <Button
-              onClick={() => setGeneralErrorDialogOpen(false)}
+              onClick={() => setSizeErrorDialogOpen(false)}
               className="bg-gold hover:bg-gold-dark text-black font-medium"
             >
-              Aceptar
+              Entendido
             </Button>
           </DialogFooter>
         </DialogContent>

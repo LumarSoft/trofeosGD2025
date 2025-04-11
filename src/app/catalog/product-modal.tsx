@@ -11,8 +11,11 @@ interface ProductModalProps {
     id: number;
     name: string;
     description: string;
-    image: string;
-    category: string;
+    image?: string;
+    image_url?: string;
+    categoria: {
+      name: string;
+    } | null;
   };
   onClose: () => void;
 }
@@ -64,6 +67,9 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
     onClose();
   };
 
+  const getImageUrl = (product: ProductModalProps["product"]): string => {
+    return product.image_url || product.image || "/placeholder.svg";
+  };
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -113,7 +119,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
         <div className="flex flex-col md:flex-row">
           <div className="relative w-full md:w-1/2 h-[250px] sm:h-[300px] md:h-auto">
             <Image
-              src={product.image || "/placeholder.svg"}
+              src={getImageUrl(product)}
               alt={product.name}
               fill
               className="object-cover"
@@ -121,41 +127,18 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
               priority
             />
           </div>
-
           <div className="p-4 sm:p-6 md:p-8 w-full md:w-1/2">
             <div className="md:block hidden">
               <div className="text-sm text-gold-light/60 mb-2">
-                {product.category}
+                {product.categoria?.name || "Sin categoría"}
               </div>
               <h2 className="text-2xl font-bold text-gold mb-4">
                 {product.name}
               </h2>
             </div>
 
-            <p className="text-gold-light/80 mb-6">{product.description}</p>
-
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-medium text-gold mb-2">
-                  Características
-                </h3>
-                <ul className="list-disc list-inside text-gold-light/70 space-y-1">
-                  <li>Material de alta calidad</li>
-                  <li>Acabado premium</li>
-                  <li>Personalizable</li>
-                  <li>Incluye estuche de presentación</li>
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-medium text-gold mb-2">
-                  Personalización
-                </h3>
-                <p className="text-gold-light/70">
-                  Este producto puede ser personalizado con grabado láser,
-                  placas metálicas o impresión UV.
-                </p>
-              </div>
+            <div className="text-gold-light/80 mb-6 whitespace-pre-wrap break-words">
+              {product.description || ""}
             </div>
 
             <div className="mt-6 md:mt-8 bottom-0 bg-black py-3 border-t border-gold/20 -mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8 will-change-auto z-10">

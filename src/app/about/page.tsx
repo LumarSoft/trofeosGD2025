@@ -92,11 +92,11 @@ export default function AboutPage() {
                 siempre la pasión por el detalle y la excelencia artesanal.
               </p>
               <p className="text-gold-light/80 mb-6">
-                A lo largo de estos años, hemos tenido el honor de crear trofeos
-                y reconocimientos para eventos deportivos de primer nivel,
-                competiciones internacionales, premios empresariales y
-                ceremonias institucionales, siempre con el compromiso de que
-                cada pieza refleje el valor del logro que representa.
+                A lo largo de estos años, hemos tenido el honor de fabricar
+                trofeos y reconocimientos para eventos deportivos de primer
+                nivel, competencias internacionales, premios empresariales y
+                ceremonias institucionales, siempre con el compromiso de entrega
+                y que cada premio refleje el valor del logro que representa.
               </p>
               <div className="flex items-center space-x-2 text-gold">
                 <History className="h-5 w-5" />
@@ -141,8 +141,10 @@ export default function AboutPage() {
               Nuestros Valores
             </h2>
             <p className="text-gold-light/80 max-w-3xl mx-auto">
-              Los principios que guían nuestro trabajo diario y nos permiten
-              ofrecer productos y servicios excepcionales.
+              Los principios que guían el trabajo son fundamentales para ofrecer
+              productos y servicios excepcionales. El compromiso con una entrega
+              en tiempo y forma es clave para asegurar la satisfacción de sus
+              clientes.
             </p>
           </motion.div>
 

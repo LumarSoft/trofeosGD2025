@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir, access } from "fs/promises";
-import { join } from "path";
 import { auth } from "@/lib/auth";
-
-// Función para verificar y crear directorio si no existe
-async function ensureDirectoryExists(dirPath: string) {
-  try {
-    await access(dirPath);
-  } catch (error) {
-    // Si el directorio no existe, crearlo
-    await mkdir(dirPath, { recursive: true });
-  }
-}
+import { getServerSupabaseClient } from "@/lib/supabaseStorage";
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,26 +49,38 @@ export async function POST(request: NextRequest) {
     // Incluir sessionId en el nombre para identificar a qué sesión pertenece
     const fileName = `${sessionId}-${timestamp}.${extension}`;
 
-    // Guardar en la carpeta "temp"
-    const path = join(process.cwd(), "public/temp");
-
-    // Asegurarse de que el directorio existe
-    await ensureDirectoryExists(path);
-
-    // Convertir el archivo a ArrayBuffer y luego a Buffer para escribirlo
+    // Convertir el archivo a ArrayBuffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Guardar el archivo
-    const filePath = join(path, fileName);
-    await writeFile(filePath, buffer);
+    // Inicializar el cliente de Supabase
+    const supabase = getServerSupabaseClient();
+
+    // Subir el archivo a la carpeta temp en Supabase
+    const { data, error } = await supabase.storage
+      .from("productos")
+      .upload(`temp/${fileName}`, buffer, {
+        contentType: file.type,
+        upsert: true,
+      });
+
+    if (error) {
+      console.error("Error al subir archivo a Supabase:", error);
+      return NextResponse.json(
+        { message: `Error al subir archivo: ${error.message}` },
+        { status: 500 }
+      );
+    }
+
+    // Obtener la URL pública
+    const { data: urlData } = supabase.storage
+      .from("productos")
+      .getPublicUrl(`temp/${fileName}`);
 
     // Devolver la URL relativa para acceder a la imagen
-    const imageUrl = `/temp/${fileName}`;
-
     return NextResponse.json(
       {
-        url: imageUrl,
+        url: urlData.publicUrl,
         sessionId: sessionId,
       },
       { status: 201 }

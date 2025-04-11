@@ -3,36 +3,19 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import {
-  Trophy,
-  Medal,
-  Award,
-  Gift,
-  Shield,
-  BookOpen,
-  Briefcase,
-} from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/shared/components/navbar";
 import Footer from "@/shared/components/footer";
-
-const categories = [
-  { id: "metal-cups", name: "Copas Metálicas", icon: Trophy },
-  { id: "trophies", name: "Trofeos", icon: Award },
-  { id: "medals", name: "Medallas", icon: Medal },
-  { id: "plaques", name: "Plaquetas", icon: Shield },
-  { id: "plates", name: "Placas", icon: BookOpen },
-  { id: "corporate-gifts", name: "Regalos Empresariales", icon: Gift },
-  { id: "leather-goods", name: "Marroquinería", icon: Briefcase },
-];
+import { categories, Category } from "./categories";
 
 export default function Home() {
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const handleCategoryClick = (categoryId: string) => {
+  const handleCategoryClick = (categoryId: string, categoryName: string) => {
     setSelectedCategory(categoryId);
-    router.push(`/catalog/${categoryId}`);
+    router.push(`/catalog?category=${encodeURIComponent(categoryName)}`);
   };
 
   const containerVariants = {
@@ -55,6 +38,30 @@ export default function Home() {
         stiffness: 100,
       },
     },
+  };
+
+  const renderIconOrImage = (category: Category) => {
+    if (category.type === "icon" && category.icon) {
+      const IconComponent = category.icon;
+      return (
+        <div className="flex items-center justify-center w-20 h-20">
+          <IconComponent className="w-14 h-14 text-gold transition-transform duration-300 group-hover:scale-125" />
+        </div>
+      );
+    } else if (category.type === "image" && category.image) {
+      return (
+        <div className="w-20 h-20 relative">
+          <Image
+            src={category.image}
+            alt={category.name}
+            fill
+            objectFit="contain"
+            className="transition-transform duration-300 group-hover:scale-125"
+          />
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -87,11 +94,13 @@ export default function Home() {
                 key={category.id}
                 variants={itemVariants}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => handleCategoryClick(category.id)}
-                className="card-category card-hover cursor-pointer"
+                onClick={() => handleCategoryClick(category.id, category.name)}
+                className="card-category card-hover cursor-pointer p-4 bg-black/5 rounded-lg hover:shadow-md transition-all group"
               >
                 <div className="flex flex-col items-center text-center">
-                  <category.icon className="w-12 h-12 mb-4 text-gold" />
+                  <div className="mb-4 flex items-center justify-center h-20">
+                    {renderIconOrImage(category)}
+                  </div>
                   <h3 className="text-lg font-medium text-gold">
                     {category.name}
                   </h3>

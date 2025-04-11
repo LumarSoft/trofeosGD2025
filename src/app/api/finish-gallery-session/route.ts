@@ -22,41 +22,36 @@ export async function POST(request: NextRequest) {
     const supabase = getServerSupabaseClient();
 
     // Si save=true, mover la imagen temporal a la carpeta permanente
-    if (save && path) {
+    if (save === true && path) {
       try {
+        // Comprobación de seguridad para la URL
+        if (!path || typeof path !== "string") {
+          throw new Error("URL de imagen no válida");
+        }
+
         // Extraer el nombre de archivo de la URL
         const fileName = path.split("/").pop();
-
-        // Mejorar la detección de imágenes temporales para incluir URLs completas de Supabase
-        const isTempImage =
-          path.includes("/temp/") ||
-          path.includes("temp%2F") ||
-          path.includes("/productos/temp/");
 
         if (!fileName) {
           throw new Error("Nombre de archivo no válido");
         }
 
         // Comprobar si el archivo está en la carpeta temp de Supabase
-        if (isTempImage) {
+        if (path.includes("temp/")) {
+          console.log(`Procesando archivo temporal: ${fileName}`);
+
           // Extraer el nombre sin el prefijo de sesión para la versión permanente
+          // Importante: asegúrese de que el patrón coincida con cómo se guarda en el endpoint de upload
           const finalFileName = fileName.replace(`${sessionId}-`, "");
 
-          // Construir la ruta correcta para la carpeta temp
-          // Si la URL tiene formato diferente, extraer la parte relevante
-          let tempPath = `temp/${fileName}`;
-
-          // Si la URL tiene un formato completo de Supabase, necesitamos extraer solo la parte relevante
-          if (path.includes("supabase.co")) {
-            // La ruta en supabase es 'temp/filename' dentro del bucket 'productos'
-            tempPath = `temp/${fileName}`;
-          }
-
-          console.log(`Intentando descargar archivo temporal: ${tempPath}`);
+          // Añadir prefijo gallery_ para distinguir de otros archivos
+          const galleryFileName = `gallery_${finalFileName}`;
 
           // Descargar el archivo temporal primero
           const { data: fileData, error: downloadError } =
-            await supabase.storage.from("productos").download(tempPath);
+            await supabase.storage
+              .from("productos")
+              .download(`temp/${fileName}`);
 
           if (downloadError) {
             console.error(
@@ -72,33 +67,48 @@ export async function POST(request: NextRequest) {
             throw new Error("No se pudo obtener el archivo temporal");
           }
 
-          // Subir a la ubicación permanente
-          const uploadPath = `uploads/${finalFileName}`;
-          console.log(`Subiendo archivo a ubicación permanente: ${uploadPath}`);
+          console.log(`Archivo temporal descargado: ${fileName}`);
 
+          // Subir a la ubicación permanente
           const { data: uploadData, error: uploadError } =
             await supabase.storage
               .from("productos")
-              .upload(uploadPath, fileData, {
+              .upload(`uploads/${galleryFileName}`, fileData, {
                 contentType: fileData.type,
                 upsert: true,
               });
 
           if (uploadError) {
+            console.error("Error al subir a carpeta permanente:", uploadError);
             throw new Error(
               `Error al subir a carpeta permanente: ${uploadError.message}`
             );
           }
 
+          console.log(
+            `Archivo subido a carpeta permanente: uploads/${galleryFileName}`
+          );
+
           // Obtener la URL pública permanente
           const { data: urlData } = supabase.storage
             .from("productos")
-            .getPublicUrl(uploadPath);
+            .getPublicUrl(`uploads/${galleryFileName}`);
+
+          console.log(`URL pública obtenida: ${urlData.publicUrl}`);
 
           // Eliminar el archivo temporal
-          await supabase.storage.from("productos").remove([tempPath]);
+          const { error: deleteError } = await supabase.storage
+            .from("productos")
+            .remove([`temp/${fileName}`]);
 
-          console.log("Archivo movido con éxito a la carpeta permanente");
+          if (deleteError) {
+            console.warn(
+              "No se pudo eliminar el archivo temporal:",
+              deleteError
+            );
+          } else {
+            console.log(`Archivo temporal eliminado: temp/${fileName}`);
+          }
 
           return NextResponse.json({
             success: true,
@@ -107,10 +117,7 @@ export async function POST(request: NextRequest) {
           });
         } else {
           // Si no es un archivo temporal, simplemente devolver la URL actual
-          console.log(
-            "La URL no es una imagen temporal, manteniendo la URL actual"
-          );
-
+          console.log("La URL no es temporal, se mantiene tal cual:", path);
           return NextResponse.json({
             success: true,
             message: "URL mantenida",
@@ -118,7 +125,7 @@ export async function POST(request: NextRequest) {
           });
         }
       } catch (error: any) {
-        console.error("Error al procesar archivo:", error);
+        console.error("Error al procesar archivo de galería:", error);
         return NextResponse.json(
           {
             success: false,
@@ -128,19 +135,19 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
-    } else {
+    } else if (save === false) {
       // Si save=false, eliminar todos los archivos temporales de esta sesión
       try {
         console.log(
           `Limpiando archivos temporales para la sesión: ${sessionId}`
         );
-
         // Listar archivos en la carpeta temp
         const { data: files, error: listError } = await supabase.storage
           .from("productos")
           .list("temp");
 
         if (listError) {
+          console.error("Error al listar archivos temporales:", listError);
           throw new Error(
             `Error al listar archivos temporales: ${listError.message}`
           );
@@ -153,19 +160,27 @@ export async function POST(request: NextRequest) {
           )
           .map((file: { name: string }) => `temp/${file.name}`);
 
-        if (sessionFiles.length > 0) {
-          console.log(`Eliminando ${sessionFiles.length} archivos temporales`);
+        console.log(
+          `Encontrados ${sessionFiles.length} archivos temporales para eliminar`
+        );
 
+        if (sessionFiles.length > 0) {
           // Eliminar archivos
           const { error: deleteError } = await supabase.storage
             .from("productos")
             .remove(sessionFiles);
 
           if (deleteError) {
+            console.error(
+              "Error al eliminar archivos temporales:",
+              deleteError
+            );
             throw new Error(
               `Error al eliminar archivos temporales: ${deleteError.message}`
             );
           }
+
+          console.log(`Eliminados ${sessionFiles.length} archivos temporales`);
         }
 
         return NextResponse.json({
@@ -182,9 +197,18 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
+    } else {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Operación no válida. Debe especificar 'save' como true o false",
+        },
+        { status: 400 }
+      );
     }
   } catch (error: any) {
-    console.error("Error al finalizar la sesión:", error);
+    console.error("Error al finalizar la sesión de galería:", error);
     return NextResponse.json(
       { message: `Error al procesar la solicitud: ${error.message}` },
       { status: 500 }

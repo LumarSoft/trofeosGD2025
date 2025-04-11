@@ -129,6 +129,19 @@ export default function Navbar() {
               </Link>
             </motion.div>
             <motion.div
+              custom={3}
+              initial="hidden"
+              animate="visible"
+              variants={navItemVariants}
+            >
+              <Link
+                href="/galeria"
+                className="text-gold-light/80 hover:text-gold transition-colors"
+              >
+                Galería
+              </Link>
+            </motion.div>
+            <motion.div
               custom={2}
               initial="hidden"
               animate="visible"
@@ -160,7 +173,7 @@ export default function Navbar() {
               animate="visible"
               variants={navItemVariants}
             >
-              <Link href="/admin">
+              <Link href="/admin/dashboard">
                 <Button
                   variant="outline"
                   className="border-gold text-gold hover:bg-gold hover:text-black"
@@ -226,6 +239,20 @@ export default function Navbar() {
                 onClick={toggleMenu}
               >
                 Catálogo
+              </Link>
+            </motion.div>
+            <motion.div
+              custom={2}
+              initial="hidden"
+              animate={isMenuOpen ? "visible" : "hidden"}
+              variants={mobileNavItemVariants}
+            >
+              <Link
+                href="/galeria"
+                className="text-gold-light/80 hover:text-gold py-2 transition-colors block"
+                onClick={toggleMenu}
+              >
+                Galería
               </Link>
             </motion.div>
             <motion.div

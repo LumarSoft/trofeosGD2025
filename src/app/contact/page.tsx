@@ -30,9 +30,26 @@ export default function ContactPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Aquí irá la lógica de envío del formulario
-    // Simulamos un retardo para mostrar el estado de carga
-    setTimeout(() => {
+    try {
+      // Número de WhatsApp al que se enviará el mensaje (sin el '+')
+      const whatsappNumber = "5493416615774"; // Usando el número que aparece en la página
+
+      // Crear el mensaje para WhatsApp con los datos del formulario
+      const whatsappMessage = encodeURIComponent(
+        `*Nuevo mensaje de contacto*\n\n` +
+          `*Nombre:* ${formData.name}\n` +
+          `*Email:* ${formData.email}\n` +
+          `*Teléfono:* ${formData.phone || "No proporcionado"}\n\n` +
+          `*Mensaje:*\n${formData.message}`
+      );
+
+      // Crear la URL de WhatsApp
+      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
+
+      // Abrir la URL de WhatsApp en una nueva ventana
+      window.open(whatsappUrl, "_blank");
+
+      // Marcar como enviado exitosamente
       setIsSubmitting(false);
       setSubmitSuccess(true);
 
@@ -46,7 +63,11 @@ export default function ContactPage() {
           message: "",
         });
       }, 3000);
-    }, 1500);
+    } catch (error) {
+      console.error("Error al enviar el mensaje por WhatsApp:", error);
+      setIsSubmitting(false);
+      // Aquí podrías manejar el error, mostrando una notificación al usuario
+    }
   };
 
   // Animación para elementos que entran desde abajo
@@ -191,11 +212,17 @@ export default function ContactPage() {
                 <Clock className="h-6 w-6 text-gold" />
               </div>
               <div>
-                <h3 className="text-xl font-medium text-gold-light">Horario</h3>
-                <p className="text-gold-light/70 mt-1">
-                  Lunes a Viernes: 9:00 - 20:00
+                <h3 className="text-xl font-medium text-amber-300">Horario</h3>
+                <p className="text-amber-300/70 mt-1">
+                  Lunes a viernes de{" "}
+                  <span className="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md text-sm font-medium">
+                    8am a 12am
+                  </span>{" "}
+                  y{" "}
+                  <span className="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md text-sm font-medium">
+                    13hs a 17hs
+                  </span>
                 </p>
-                <p className="text-gold-light/70">Sábados: 10:00 - 14:00</p>
               </div>
             </motion.div>
           </motion.div>
@@ -399,64 +426,66 @@ export default function ContactPage() {
               viewport={{ once: true }}
             >
               <h3 className="text-xl font-medium text-gold mb-3">
+                ¿Cómo puedo realizar un pedido?{" "}
+              </h3>
+              <p className="text-gold-light/70">
+                Para realizar un pedido, puedes hacerlo a través de nuestro
+                WhatsApp. Te recomiendo que contactes directamente con nuestro
+                equipo comercial, ellos estarán encantados de ayudarte
+              </p>
+            </motion.div>
+
+            <motion.div
+              className="border border-gold/20 rounded-lg p-6"
+              variants={fadeInUp}
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true }}
+            >
+              <h3 className="text-xl font-medium text-gold mb-3">
+                ¿Realizan envíos dentro del pais ?
+              </h3>
+              <p className="text-gold-light/70">
+                ¡Claro! Sí, realizamos envíos a todo el país. Los plazos de
+                entrega pueden variar según el destino. Si deseas un presupuesto
+                personalizado, no dudes en contactarnos. ¡Estamos aquí para
+                ayudarte con lo que necesites!
+              </p>
+            </motion.div>
+
+            <motion.div
+              className="border border-gold/20 rounded-lg p-6"
+              variants={fadeInUp}
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true }}
+            >
+              <h3 className="text-xl font-medium text-gold mb-3">
+                ¿Ofrecen personalización en todos los productos?{" "}
+              </h3>
+              <p className="text-gold-light/70">
+                ¡Sí, ofrecemos personalización en todos nuestros trofeos y
+                reconocimientos! Además, también contamos con diseños exclusivos
+                a medida. Si tienes alguna idea en mente o necesitas más
+                información, no dudes en preguntar
+              </p>
+            </motion.div>
+
+            <motion.div
+              className="border border-gold/20 rounded-lg p-6"
+              variants={fadeInUp}
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true }}
+            >
+              <h3 className="text-xl font-medium text-gold mb-3">
                 ¿Cuál es el plazo de entrega habitual?
               </h3>
               <p className="text-gold-light/70">
-                Nuestro plazo de entrega estándar es de 7 a 10 días laborables.
-                Para pedidos urgentes, contamos con servicio express con entrega
-                en 48-72 horas (consultar disponibilidad).
-              </p>
-            </motion.div>
-
-            <motion.div
-              className="border border-gold/20 rounded-lg p-6"
-              variants={fadeInUp}
-              initial="initial"
-              whileInView="animate"
-              viewport={{ once: true }}
-            >
-              <h3 className="text-xl font-medium text-gold mb-3">
-                ¿Realizan envíos internacionales?
-              </h3>
-              <p className="text-gold-light/70">
-                Sí, realizamos envíos a toda Europa y América. Los plazos y
-                costes varían según el destino. Contacta con nosotros para un
-                presupuesto personalizado.
-              </p>
-            </motion.div>
-
-            <motion.div
-              className="border border-gold/20 rounded-lg p-6"
-              variants={fadeInUp}
-              initial="initial"
-              whileInView="animate"
-              viewport={{ once: true }}
-            >
-              <h3 className="text-xl font-medium text-gold mb-3">
-                ¿Ofrecen personalización en todos los productos?
-              </h3>
-              <p className="text-gold-light/70">
-                Sí, todos nuestros trofeos y reconocimientos pueden ser
-                personalizados con grabados, placas o impresiones a color según
-                el material. También ofrecemos diseños exclusivos a medida.
-              </p>
-            </motion.div>
-
-            <motion.div
-              className="border border-gold/20 rounded-lg p-6"
-              variants={fadeInUp}
-              initial="initial"
-              whileInView="animate"
-              viewport={{ once: true }}
-            >
-              <h3 className="text-xl font-medium text-gold mb-3">
-                ¿Cómo puedo realizar un pedido?
-              </h3>
-              <p className="text-gold-light/70">
-                Puedes realizar tu pedido a través de nuestra web, por teléfono
-                o enviándonos un email. Para pedidos corporativos o
-                personalizados, te recomendamos contactar directamente con
-                nuestro equipo comercial.
+                El plazo de entrega habitual puede variar según el destino y el
+                tipo de producto y cantidad que solicites. Te recomiendo que
+                contactes con nosotros para obtener información más específica
+                sobre tu pedido.
               </p>
             </motion.div>
           </div>

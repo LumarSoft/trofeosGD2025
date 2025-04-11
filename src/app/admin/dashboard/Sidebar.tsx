@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Home, Package, LogOut, Users } from "lucide-react";
+import { Home, Package, LogOut, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import {
@@ -13,13 +13,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import Link from "next/link";
 
 interface SidebarProps {
   router: AppRouterInstance;
   handleLogout: () => Promise<void>;
+  activeSection?: string;
 }
 
-export default function Sidebar({ router, handleLogout }: SidebarProps) {
+export default function Sidebar({
+  router,
+  handleLogout,
+  activeSection = "products",
+}: SidebarProps) {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -47,21 +53,41 @@ export default function Sidebar({ router, handleLogout }: SidebarProps) {
         </div>
 
         <nav className="space-y-2">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-gold-light/80 hover:text-gold hover:bg-gold/10"
-            onClick={() => router.push("/admin/dashboard")}
-          >
-            <Home className="mr-2 h-4 w-4" />
-            Inicio
-          </Button>
+          <Link href="/admin/dashboard" className="w-full">
+            <Button
+              variant={activeSection === "products" ? "default" : "ghost"}
+              className={`w-full justify-start ${
+                activeSection === "products"
+                  ? "bg-gold/20 text-gold"
+                  : "text-gold-light/80 hover:text-gold hover:bg-gold/10"
+              }`}
+            >
+              <Package className="mr-2 h-4 w-4" />
+              Productos
+            </Button>
+          </Link>
+
+          <Link href="/admin/dashboard/gallery" className="w-full">
+            <Button
+              variant={activeSection === "gallery" ? "default" : "ghost"}
+              className={`w-full justify-start ${
+                activeSection === "gallery"
+                  ? "bg-gold/20 text-gold"
+                  : "text-gold-light/80 hover:text-gold hover:bg-gold/10"
+              }`}
+            >
+              <ImageIcon className="mr-2 h-4 w-4" />
+              Galería
+            </Button>
+          </Link>
 
           <Button
             variant="ghost"
             className="w-full justify-start text-gold-light/80 hover:text-gold hover:bg-gold/10"
+            onClick={() => router.push("/")}
           >
-            <Users className="mr-2 h-4 w-4" />
-            Usuarios
+            <Home className="mr-2 h-4 w-4" />
+            Ir al Sitio
           </Button>
         </nav>
 
