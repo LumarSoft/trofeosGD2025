@@ -11,6 +11,9 @@ import {
   AlertTriangle,
   X,
   FileIcon,
+  CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +29,15 @@ import {
 } from "@/components/ui/dialog";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface GalleryItem {
   id?: number;
@@ -55,6 +67,9 @@ export default function GalleryForm({
     date: new Date().toISOString().split("T")[0],
     image_url: "/placeholder.svg",
   });
+
+  // Estado para el calendario
+  const [date, setDate] = useState<Date | undefined>(new Date());
 
   // Generamos un ID de sesión único para este formulario
   const [sessionId] = useState(
@@ -86,6 +101,12 @@ export default function GalleryForm({
   // Si hay initialData, cargar en el formulario
   useEffect(() => {
     if (initialData) {
+      const initialDate = initialData.date
+        ? new Date(initialData.date)
+        : new Date();
+
+      setDate(initialDate);
+
       setFormData({
         ...initialData,
         date: initialData.date
@@ -550,14 +571,84 @@ export default function GalleryForm({
                   <Calendar className="h-4 w-4 mr-2 opacity-70" />
                   Fecha del Proyecto
                 </Label>
-                <Input
-                  id="date"
-                  name="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  className="bg-black/60 border-gold/30 focus:border-gold text-gold-light transition-all duration-300 focus:shadow-[0_0_15px_rgba(208,177,110,0.15)] h-11"
-                />
+
+                {/* Nuevo componente de calendario */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal h-11 bg-black/60 border-gold/30 hover:bg-gold/10 hover:text-gold hover:border-gold focus:border-gold text-gold-light transition-all duration-300 focus:shadow-[0_0_15px_rgba(208,177,110,0.15)]",
+                        !date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 opacity-70" />
+                      {date ? (
+                        format(date, "PPP", { locale: es })
+                      ) : (
+                        <span>Selecciona una fecha</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-black border border-gold/30 shadow-[0_5px_30px_rgba(208,177,110,0.15)]">
+                    <CalendarComponent
+                      mode="single"
+                      selected={date}
+                      onSelect={(newDate) => {
+                        setDate(newDate);
+                        setFormData((prev) => ({
+                          ...prev,
+                          date: newDate
+                            ? newDate.toISOString().split("T")[0]
+                            : prev.date,
+                        }));
+                      }}
+                      initialFocus
+                      className="rounded-md border-gold/20"
+                      classNames={{
+                        months: "space-y-4",
+                        month: "space-y-4",
+                        caption:
+                          "flex justify-center pt-1 relative items-center text-gold",
+                        caption_label: "text-sm font-medium text-gold-light",
+                        nav: "space-x-1 flex items-center",
+                        nav_button:
+                          "h-7 w-7 bg-black/60 hover:bg-gold/20 rounded-md flex items-center justify-center text-gold-light hover:text-gold",
+                        nav_button_previous: "absolute left-1",
+                        nav_button_next: "absolute right-1",
+                        table: "w-full border-collapse space-y-1",
+                        head_row: "flex",
+                        head_cell:
+                          "text-gold-light/70 rounded-md w-9 font-normal text-[0.8rem]",
+                        row: "flex w-full mt-2",
+                        cell: "h-9 w-9 text-center text-sm relative p-0 focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-gold/10",
+                        day: "h-9 w-9 p-0 flex items-center justify-center rounded-md text-gold-light hover:bg-gold/20 hover:text-gold aria-selected:opacity-100",
+                        day_selected:
+                          "bg-gold text-black hover:bg-gold-dark hover:text-black focus:bg-gold-dark focus:text-black",
+                        day_today: "bg-gold/20 text-gold",
+                        day_outside: "text-gold-light/40 opacity-50",
+                        day_disabled: "text-gold-light/30",
+                        day_range_middle:
+                          "aria-selected:bg-gold/20 aria-selected:text-gold-light",
+                        day_hidden: "invisible",
+                      }}
+                      components={{
+                        IconLeft: ({ ...props }) => (
+                          <ChevronLeft
+                            className="h-4 w-4 text-gold-light"
+                            {...props}
+                          />
+                        ),
+                        IconRight: ({ ...props }) => (
+                          <ChevronRight
+                            className="h-4 w-4 text-gold-light"
+                            {...props}
+                          />
+                        ),
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="space-y-2">

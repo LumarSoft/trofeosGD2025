@@ -64,6 +64,14 @@ export default function Home() {
     return null;
   };
 
+  // Dividir las categorías: 4 superiores y 3 inferiores
+  const topCategories = categories.slice(0, 4);
+  const bottomCategories = categories.slice(4);
+
+  // Estilos comunes para todas las tarjetas de categoría
+  const categoryCardClass =
+    "card-category card-hover cursor-pointer p-4 bg-black/5 rounded-lg hover:shadow-md transition-all group";
+
   return (
     <main className="min-h-screen flex flex-col">
       <Navbar />
@@ -83,19 +91,20 @@ export default function Home() {
             </p>
           </motion.div>
 
+          {/* Primeras 4 categorías en grid normal */}
           <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8"
+            className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8"
           >
-            {categories.map((category) => (
+            {topCategories.map((category) => (
               <motion.div
                 key={category.id}
                 variants={itemVariants}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleCategoryClick(category.id, category.name)}
-                className="card-category card-hover cursor-pointer p-4 bg-black/5 rounded-lg hover:shadow-md transition-all group"
+                className={categoryCardClass}
               >
                 <div className="flex flex-col items-center text-center">
                   <div className="mb-4 flex items-center justify-center h-20">
@@ -108,6 +117,38 @@ export default function Home() {
               </motion.div>
             ))}
           </motion.div>
+
+          {/* Últimas 3 categorías centradas con el mismo tamaño */}
+          <div className="flex justify-center mt-6 md:mt-8">
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-3 gap-6 md:gap-8"
+              style={{ width: "75%" }} // Ajusta el ancho para 3 categorías con el mismo espaciado
+            >
+              {bottomCategories.map((category) => (
+                <motion.div
+                  key={category.id}
+                  variants={itemVariants}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() =>
+                    handleCategoryClick(category.id, category.name)
+                  }
+                  className={categoryCardClass}
+                >
+                  <div className="flex flex-col items-center text-center">
+                    <div className="mb-4 flex items-center justify-center h-20">
+                      {renderIconOrImage(category)}
+                    </div>
+                    <h3 className="text-lg font-medium text-gold">
+                      {category.name}
+                    </h3>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
 
           <motion.div
             initial={{ opacity: 0 }}
