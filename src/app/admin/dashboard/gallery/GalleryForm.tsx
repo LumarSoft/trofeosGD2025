@@ -492,7 +492,7 @@ export default function GalleryForm({
                       <p className="text-sm truncate">{imageInfo.name}</p>
                     </div>
                     <p className="text-xs text-gold-light/70">
-                      Tamaño: {imageInfo.sizeFormatted}
+                      Tamaño del archivo: {imageInfo.sizeFormatted}
                     </p>
                   </div>
                 )}
