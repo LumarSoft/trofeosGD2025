@@ -13,7 +13,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Navbar from "@/shared/components/navbar";
-import Footer from "@/shared/components/footer";
 import ProductModal from "./product-modal";
 import { useSearchParams } from "next/navigation";
 
@@ -274,8 +273,6 @@ function CatalogContent() {
         </div>
       </section>
 
-      <Footer />
-
       <AnimatePresence>
         {isModalOpen && selectedProduct && (
           <ProductModal product={selectedProduct} onClose={closeModal} />
@@ -305,7 +302,6 @@ function CatalogLoading() {
           </div>
         </div>
       </section>
-      <Footer />
     </main>
   );
 }

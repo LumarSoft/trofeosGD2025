@@ -19,10 +19,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body className={inter.className}>
-        {/* Your existing header/navigation might be here */}
-        <main>{children}</main>
+        {children}
+        <WhatsAppButton
+          phoneNumber="+5493416615774"
+          message="Hola! Estoy interesado en conocer más sobre sus trofeos y productos. ¿Podría darme más información?"
+        />
         <Footer />
       </body>
     </html>

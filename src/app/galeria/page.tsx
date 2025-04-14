@@ -99,7 +99,6 @@ export default function GalleryPage() {
             <p className="text-gold-light">Cargando galería...</p>
           </div>
         </div>
-        <Footer />
       </main>
     );
   }
@@ -116,7 +115,6 @@ export default function GalleryPage() {
             <p className="text-gold-light">{error}</p>
           </div>
         </div>
-        <Footer />
       </main>
     );
   }
@@ -245,8 +243,6 @@ export default function GalleryPage() {
           )}
         </div>
       </section>
-
-      <Footer />
 
       {/* Modal para vista detallada, simplificado sin referencias al DOM ni control de scroll */}
       <AnimatePresence>

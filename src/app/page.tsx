@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/shared/components/navbar";
-import Footer from "@/shared/components/footer";
 import { categories, Category } from "./categories";
 
 export default function Home() {
@@ -165,8 +164,6 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
-
-      <Footer />
     </main>
   );
 }
