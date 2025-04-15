@@ -1,19 +1,18 @@
-import type React from "react";
+import type { ReactNode } from "react";
 import { Inter } from "next/font/google";
-import "./globals.css";
+import "../globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "TrofeosGD",
-  description:
-    "Explore nuestra colección de trofeos, medallas y regalos de empresa de alta calidad",
+  title: "TrofeosGD - Panel de Administración",
+  description: "Panel de administración para TrofeosGD",
 };
 
-export default function RootLayout({
+export default function AdminLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <html lang="es" className="dark" suppressHydrationWarning>
