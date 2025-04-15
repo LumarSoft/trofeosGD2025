@@ -172,17 +172,7 @@ export default function Navbar() {
               initial="hidden"
               animate="visible"
               variants={navItemVariants}
-            >
-              <Link href="/admin/dashboard">
-                <Button
-                  variant="outline"
-                  className="border-gold text-gold hover:bg-gold hover:text-black"
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  Admin
-                </Button>
-              </Link>
-            </motion.div>
+            ></motion.div>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -287,17 +277,7 @@ export default function Navbar() {
               initial="hidden"
               animate={isMenuOpen ? "visible" : "hidden"}
               variants={mobileNavItemVariants}
-            >
-              <Link href="/admin" onClick={toggleMenu}>
-                <Button
-                  variant="outline"
-                  className="w-full border-gold text-gold hover:bg-gold hover:text-black"
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  Admin
-                </Button>
-              </Link>
-            </motion.div>
+            ></motion.div>
           </div>
         </motion.div>
       </div>

@@ -119,7 +119,7 @@ export default function ContactPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 to-black/95"></div>
         <div className="container mx-auto px-4 h-full flex items-center justify-center relative z-10">
           <motion.h1
-            className="text-4xl md:text-5xl font-bold text-gold text-center"
+            className="text-5xl md:text-7xl font-bold text-gold text-center"
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
@@ -129,7 +129,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-4 md:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Información de Contacto */}
           <motion.div

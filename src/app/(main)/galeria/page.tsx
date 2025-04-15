@@ -161,7 +161,7 @@ export default function GalleryPage() {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <h1 className="text-4xl md:text-5xl font-bold text-gold mb-4">
+            <h1 className="text-4xl md:text-6xl font-bold text-gold mb-4">
               Galería de trabajos
             </h1>
             <p className="text-lg md:text-xl text-gold-light/90 max-w-2xl mx-auto">
@@ -172,7 +172,7 @@ export default function GalleryPage() {
         </div>
       </section>
 
-      <section className="flex-1 py-12">
+      <section className="flex-1">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: -10 }}

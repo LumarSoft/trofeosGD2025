@@ -80,15 +80,6 @@ export default function Sidebar({
               Galería
             </Button>
           </Link>
-
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-gold-light/80 hover:text-gold hover:bg-gold/10"
-            onClick={() => router.push("/")}
-          >
-            <Home className="mr-2 h-4 w-4" />
-            Ir al Sitio
-          </Button>
         </nav>
 
         <div className="absolute bottom-4 w-56">
