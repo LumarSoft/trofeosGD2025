@@ -189,14 +189,13 @@ export default function Navbar() {
           <div className="md:hidden">
             <Button
               variant="ghost"
-              size="icon"
               onClick={toggleMenu}
               className="text-gold hover:bg-gold/10"
             >
               {isMenuOpen ? (
                 <X className="h-6 w-6" />
               ) : (
-                <Menu className="h-6 w-6" />
+                <Menu className="h-8 w-8" />
               )}
             </Button>
           </div>

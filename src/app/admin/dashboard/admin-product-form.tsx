@@ -13,6 +13,8 @@ import {
   AlertTriangle,
   X,
   FileIcon,
+  Save,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,6 +69,9 @@ export default function AdminProductForm({
     size: number;
     sizeFormatted: string;
   } | null>(null);
+
+  // Estado para manejo de guardado/actualización
+  const [isSaving, setIsSaving] = useState(false);
 
   // Estado para errores
   const [fileSizeError, setFileSizeError] = useState(false);
@@ -362,6 +367,9 @@ export default function AdminProductForm({
     }
 
     try {
+      // Activar estado de guardado
+      setIsSaving(true);
+
       // Comprobar si la imagen es temporal con condiciones mejoradas
       const isTemporaryImage =
         formData.image &&
@@ -434,6 +442,7 @@ export default function AdminProductForm({
       }
     } catch (error) {
       console.error("Error al finalizar la sesión:", error);
+      setIsSaving(false); // Desactivar estado de guardado en caso de error
       setGeneralErrorMessage(
         `Error al guardar el producto: ${
           error instanceof Error ? error.message : "Error desconocido"
@@ -442,6 +451,8 @@ export default function AdminProductForm({
       setGeneralErrorDialogOpen(true);
     } finally {
       setUploading(false);
+      // No desactivamos setIsSaving aquí porque queremos mantenerlo activo hasta que onSave termine
+      // La función onSave normalmente navegará fuera de este componente
     }
   };
 
@@ -502,11 +513,18 @@ export default function AdminProductForm({
                       : fileSizeError
                       ? "border-dashed border-red-500"
                       : "border border-gold/30"
-                  } transition-all duration-300 shadow-[0_0_15px_rgba(0,0,0,0.2)] group`}
+                  } transition-all duration-300 shadow-[0_0_15px_rgba(0,0,0,0.2)] group ${
+                    isSaving || uploading
+                      ? "pointer-events-none opacity-70"
+                      : ""
+                  }`}
                   onMouseEnter={() => setImageHover(true)}
                   onMouseLeave={() => setImageHover(false)}
                 >
-                  <input {...getInputProps()} />
+                  <input
+                    {...getInputProps()}
+                    disabled={isSaving || uploading}
+                  />
                   <Image
                     src={formData.image || "/placeholder.svg"}
                     alt="Vista previa del producto"
@@ -515,7 +533,7 @@ export default function AdminProductForm({
                   />
 
                   {/* Botón de eliminación de imagen */}
-                  {formData.image !== "/placeholder.svg" && (
+                  {formData.image !== "/placeholder.svg" && !isSaving && (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -523,29 +541,33 @@ export default function AdminProductForm({
                         handleRemoveImage();
                       }}
                       className="absolute top-2 right-2 bg-black/70 text-white p-1 rounded-full hover:bg-red-600 transition-colors z-10"
+                      disabled={isSaving || uploading}
                     >
                       <X className="h-5 w-5" />
                     </button>
                   )}
 
                   {/* Overlay para drag & drop o hover */}
-                  {(isDragActive || imageHover) && !fileSizeError && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center cursor-pointer"
-                    >
-                      <Upload className="h-8 w-8 text-gold mb-2" />
-                      <p className="text-gold text-center px-4">
-                        {isDragActive
-                          ? "Suelta la imagen aquí"
-                          : "Arrastra una imagen o haz clic para seleccionar"}
-                      </p>
-                    </motion.div>
-                  )}
+                  {(isDragActive || imageHover) &&
+                    !fileSizeError &&
+                    !isSaving &&
+                    !uploading && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center cursor-pointer"
+                      >
+                        <Upload className="h-8 w-8 text-gold mb-2" />
+                        <p className="text-gold text-center px-4">
+                          {isDragActive
+                            ? "Suelta la imagen aquí"
+                            : "Arrastra una imagen o haz clic para seleccionar"}
+                        </p>
+                      </motion.div>
+                    )}
 
                   {/* Mensaje de error de tamaño dentro del dropzone */}
-                  {fileSizeError && (
+                  {fileSizeError && !isSaving && (
                     <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-red-500 p-4">
                       <AlertTriangle className="h-8 w-8 mb-2" />
                       <p className="text-center">
@@ -559,6 +581,7 @@ export default function AdminProductForm({
                           setFileSizeError(false);
                         }}
                         className="mt-3 px-3 py-1 bg-gold text-black rounded hover:bg-gold-dark"
+                        disabled={isSaving}
                       >
                         Entendido
                       </button>
@@ -581,14 +604,21 @@ export default function AdminProductForm({
 
                 {/* Botón de carga alternativo */}
                 <div className="w-full">
-                  <Label htmlFor="image-upload" className="w-full">
+                  <Label
+                    htmlFor="image-upload"
+                    className={`w-full ${
+                      isSaving || uploading ? "pointer-events-none" : ""
+                    }`}
+                  >
                     <div
                       className={`flex items-center justify-center w-full ${
                         fileSizeError
                           ? "border border-red-500"
                           : "border border-gold/30"
                       } text-gold hover:bg-gold/10 rounded-md h-11 px-4 py-2 cursor-pointer transition-all duration-300 hover:shadow-[0_0_10px_rgba(208,177,110,0.2)] ${
-                        uploading ? "opacity-50 cursor-not-allowed" : ""
+                        uploading || isSaving
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
                       }`}
                     >
                       <Upload className="mr-2 h-4 w-4" />
@@ -602,7 +632,7 @@ export default function AdminProductForm({
                     type="file"
                     accept="image/*"
                     onChange={handleImageChange}
-                    disabled={uploading}
+                    disabled={uploading || isSaving}
                     className="hidden"
                     ref={fileInputRef}
                   />
@@ -642,6 +672,7 @@ export default function AdminProductForm({
                   onChange={handleChange}
                   className="bg-black/60 border-gold/30 focus:border-gold text-gold-light transition-all duration-300 focus:shadow-[0_0_15px_rgba(208,177,110,0.15)] h-11"
                   placeholder="Ingrese el nombre del producto"
+                  disabled={isSaving}
                 />
               </div>
 
@@ -657,6 +688,7 @@ export default function AdminProductForm({
                   value={formData.category}
                   onValueChange={handleCategoryChange}
                   defaultValue={formData.category}
+                  disabled={isSaving}
                 >
                   <SelectTrigger className="bg-black/60 border-gold/30 focus:border-gold text-gold-light transition-all duration-300 focus:shadow-[0_0_15px_rgba(208,177,110,0.15)] h-11">
                     <SelectValue placeholder="Seleccione una categoría" />
@@ -690,6 +722,7 @@ export default function AdminProductForm({
                   onChange={handleChange}
                   className="bg-black/60 border-gold/30 focus:border-gold text-gold-light min-h-[150px] transition-all duration-300 focus:shadow-[0_0_15px_rgba(208,177,110,0.15)]"
                   placeholder="Ingrese la descripción del producto"
+                  disabled={isSaving}
                 />
               </div>
 
@@ -705,14 +738,28 @@ export default function AdminProductForm({
               variant="outline"
               className="border-gold/30 text-gold hover:bg-gold/10 transition-all duration-300 hover:shadow-[0_0_15px_rgba(208,177,110,0.1)] h-11"
               onClick={handleCancel}
+              disabled={isSaving}
             >
               Cancelar
             </Button>
             <Button
               type="submit"
-              className="bg-gold hover:bg-gold-dark text-black font-medium transition-all duration-300 hover:shadow-[0_0_15px_rgba(208,177,110,0.3)] h-11"
+              className={`${
+                isSaving ? "bg-gold/80" : "bg-gold hover:bg-gold-dark"
+              } text-black font-medium transition-all duration-300 hover:shadow-[0_0_15px_rgba(208,177,110,0.3)] h-11 min-w-[120px] flex items-center justify-center`}
+              disabled={isSaving}
             >
-              {product ? "Actualizar" : "Guardar"}
+              {isSaving ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  {product ? "Actualizando..." : "Guardando..."}
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  {product ? "Actualizar" : "Guardar"}
+                </>
+              )}
             </Button>
           </div>
         </form>
@@ -753,6 +800,34 @@ export default function AdminProductForm({
       </Dialog>
 
       {/* Diálogo de errores generales */}
+      <Dialog
+        open={generalErrorDialogOpen}
+        onOpenChange={setGeneralErrorDialogOpen}
+      >
+        <DialogContent className="bg-black border border-gold/30 text-gold-light">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-xl text-gold">
+              <AlertTriangle className="mr-2 h-5 w-5 text-yellow-500" />
+              Error
+            </DialogTitle>
+          </DialogHeader>
+          <DialogDescription className="text-gold-light/80">
+            <div className="py-2 text-gold-light/90 whitespace-pre-line">
+              {generalErrorMessage}
+            </div>
+          </DialogDescription>
+          <DialogFooter>
+            <Button
+              onClick={() => setGeneralErrorDialogOpen(false)}
+              className="bg-gold hover:bg-gold-dark text-black font-medium"
+            >
+              Aceptar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de error de tamaño */}
       <Dialog
         open={generalErrorDialogOpen}
         onOpenChange={setGeneralErrorDialogOpen}

@@ -18,6 +18,7 @@ interface ProductTabsProps {
   handleCancelForm: () => void;
   handleAddProduct: () => void;
   onTabChange?: (tab: string) => void;
+  isLoading: boolean; // Add isLoading prop
 }
 
 export default function ProductTabs({
@@ -31,6 +32,7 @@ export default function ProductTabs({
   handleCancelForm,
   handleAddProduct,
   onTabChange,
+  isLoading, // Add isLoading parameter
 }: ProductTabsProps) {
   const [categories, setCategories] = useState(initialCategories);
   const [activeTab, setActiveTab] = useState("products");
@@ -114,6 +116,7 @@ export default function ProductTabs({
               products={products}
               handleEditProduct={handleEditProduct}
               handleDeleteProduct={handleDeleteProduct}
+              isLoading={isLoading} // Pass isLoading to ProductsTable
             />
           )}
         </div>

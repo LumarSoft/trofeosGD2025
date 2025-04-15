@@ -40,7 +40,11 @@ export default function GalleryAdmin() {
 
   // Load gallery items
   useEffect(() => {
-    loadGalleryItems();
+    if (galleryItems.length === 0) {
+      loadGalleryItems();
+    } else {
+      setIsLoading(false);
+    }
   }, []);
 
   // Function to load gallery items
@@ -207,7 +211,7 @@ export default function GalleryAdmin() {
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold text-gold flex items-center">
               <ImageIcon className="mr-2 h-5 w-5" />
-              Galería de Trabajos
+              Galería de trabajos
             </h2>
             <Button
               className="bg-gold hover:bg-gold/80 text-black"

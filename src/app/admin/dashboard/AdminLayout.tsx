@@ -76,18 +76,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     }
   };
 
-  // Show loading while verifying authentication only on initial load
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-gold mx-auto mb-4"></div>
-          <p className="text-gold-light">Cargando...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-black flex">
       {/* Sidebar */}

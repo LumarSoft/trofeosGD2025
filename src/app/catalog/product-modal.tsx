@@ -117,7 +117,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
         </div>
 
         <div className="flex flex-col md:flex-row">
-          <div className="relative w-full md:w-1/2 h-[250px] sm:h-[300px] md:h-auto">
+          <div className="relative w-full md:w-1/2 h-[300px] sm:h-[400px] md:h-[500px]">
             <Image
               src={getImageUrl(product)}
               alt={product.name}

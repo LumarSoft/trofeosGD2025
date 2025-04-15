@@ -148,23 +148,24 @@ function CatalogContent() {
       <Navbar />
 
       <section className="flex-1">
-        <div className="container mx-auto px-4 py-12">
+        <div className="container mx-auto px-4 py-8 md:py-12">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-12"
+            className="text-center mb-8 md:mb-12"
           >
-            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gold">
-              Catálogo de Productos
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4 text-gold">
+              Catálogo de productos
             </h1>
-            <p className="text-lg text-gold-light/80 max-w-2xl mx-auto">
+            <p className="text-base md:text-lg text-gold-light/80 max-w-2xl mx-auto">
               Explore nuestra colección de trofeos, medallas y reconocimientos
               de alta calidad
             </p>
           </motion.div>
 
-          <div className="flex flex-col md:flex-row gap-4 mb-8">
+          {/* Filtros mejorados para móvil */}
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-6 md:mb-8">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gold-light/50" />
               <Input
@@ -172,15 +173,15 @@ function CatalogContent() {
                 placeholder="Buscar productos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-black border-gold/30 focus:border-gold text-gold-light"
+                className="pl-10 bg-black border-gold/30 focus:border-gold text-gold-light h-10 md:h-11"
               />
             </div>
-            <div className="w-full md:w-64">
+            <div className="w-full sm:w-64">
               <Select
                 value={selectedCategory}
                 onValueChange={setSelectedCategory}
               >
-                <SelectTrigger className="bg-black border-gold/30 focus:border-gold text-gold-light">
+                <SelectTrigger className="bg-black border-gold/30 focus:border-gold text-gold-light h-10 md:h-11">
                   <Filter className="h-4 w-4 mr-2 text-gold" />
                   <SelectValue placeholder="Categoría" />
                 </SelectTrigger>
@@ -200,7 +201,7 @@ function CatalogContent() {
           </div>
 
           {loading && (
-            <div className="text-center py-12">
+            <div className="text-center py-8 md:py-12">
               <p className="text-gold-light/70 text-lg">
                 Cargando productos...
               </p>
@@ -208,7 +209,7 @@ function CatalogContent() {
           )}
 
           {error && (
-            <div className="text-center py-12">
+            <div className="text-center py-8 md:py-12">
               <p className="text-red-400 text-lg">{error}</p>
             </div>
           )}
@@ -218,7 +219,7 @@ function CatalogContent() {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+              className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6"
             >
               {filteredProducts.map((product) => (
                 <motion.div
@@ -226,16 +227,17 @@ function CatalogContent() {
                   variants={itemVariants}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleProductClick(product)}
-                  className="bg-black/90 border border-gold/20 rounded-lg overflow-hidden cursor-pointer group transition-all duration-300"
+                  className="bg-black/90 border border-gold/20 rounded-lg overflow-hidden cursor-pointer group transition-all duration-300 flex flex-col h-full"
                 >
-                  <div className="relative h-64 w-full overflow-hidden">
+                  <div className="relative w-full pt-[75%] sm:pt-[100%] overflow-hidden">
                     <Image
                       src={
                         product.image_url || product.image || "/placeholder.svg"
                       }
                       alt={product.name}
                       fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105 absolute top-0 left-0"
                     />
                     {/* Overlay gradiente sutil que aparece en hover */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -246,25 +248,25 @@ function CatalogContent() {
                       <div className="absolute top-0 right-0 w-0 h-[2px] bg-gradient-to-l from-gold/0 via-gold/80 to-gold/0 group-hover:w-full transition-all duration-500 delay-100"></div>
                     </div>
                   </div>
-                  <div className="p-4 relative">
-                    <h3 className="text-lg font-medium text-gold mb-1 transition-colors duration-300 group-hover:text-gold">
+                  <div className="p-3 sm:p-4 relative flex-grow flex flex-col">
+                    <h3 className="text-base sm:text-lg font-medium text-gold mb-1 transition-colors duration-300 group-hover:text-gold line-clamp-1">
                       {product.name}
                     </h3>
-                    <p className="text-sm text-gold-light/70 line-clamp-2 group-hover:text-gold-light/90 transition-colors duration-300">
+                    <p className="text-xs sm:text-sm text-gold-light/70 line-clamp-2 group-hover:text-gold-light/90 transition-colors duration-300 mb-auto">
                       {product.description || ""}
                     </p>
-                    <div className="mt-3 text-xs text-gold-light/50 group-hover:text-gold-light/70 transition-colors duration-300">
+                    <div className="mt-2 sm:mt-3 text-xs text-gold-light/50 group-hover:text-gold-light/70 transition-colors duration-300">
                       {product.categoria?.name || "Sin categoría"}
                     </div>
 
                     {/* Línea decorativa inferior */}
-                    <div className="absolute bottom-0 left-4 right-4 h-[1px] bg-gold/10 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+                    <div className="absolute bottom-0 left-3 right-3 sm:left-4 sm:right-4 h-[1px] bg-gold/10 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
                   </div>
                 </motion.div>
               ))}
             </motion.div>
           ) : !loading && !error ? (
-            <div className="text-center py-12">
+            <div className="text-center py-8 md:py-12">
               <p className="text-gold-light/70 text-lg">
                 No se encontraron productos que coincidan con su búsqueda.
               </p>
@@ -288,17 +290,17 @@ function CatalogLoading() {
     <main className="min-h-screen flex flex-col">
       <Navbar />
       <section className="flex-1">
-        <div className="container mx-auto px-4 py-12">
-          <div className="text-center mb-12">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gold">
-              Catálogo de Productos
+        <div className="container mx-auto px-4 py-8 md:py-12">
+          <div className="text-center mb-8 md:mb-12">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4 text-gold">
+              Catálogo de productos
             </h1>
-            <p className="text-lg text-gold-light/80 max-w-2xl mx-auto">
+            <p className="text-base md:text-lg text-gold-light/80 max-w-2xl mx-auto">
               Cargando catálogo...
             </p>
           </div>
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gold"></div>
+          <div className="flex justify-center items-center py-16 md:py-20">
+            <div className="animate-spin rounded-full h-10 w-10 md:h-12 md:w-12 border-t-2 border-b-2 border-gold"></div>
           </div>
         </div>
       </section>

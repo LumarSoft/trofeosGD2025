@@ -15,6 +15,7 @@ export default function AdminDashboard() {
     categories,
     isFormOpen,
     editingProduct,
+    isLoading, // Get isLoading from useProducts hook
     handleAddProduct,
     handleEditProduct,
     handleDeleteProduct,
@@ -35,6 +36,7 @@ export default function AdminDashboard() {
         handleCancelForm={handleCancelForm}
         handleAddProduct={handleAddProduct}
         onTabChange={setActiveTab}
+        isLoading={isLoading} // Pass isLoading to ProductTabs
       />
     </AdminLayout>
   );

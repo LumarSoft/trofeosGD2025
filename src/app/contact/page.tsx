@@ -124,7 +124,7 @@ export default function ContactPage() {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            Contacta con Nosotros
+            Contacta con nosotros
           </motion.h1>
         </div>
       </section>
@@ -149,7 +149,7 @@ export default function ContactPage() {
           >
             <motion.div variants={fadeInLeft}>
               <h2 className="text-2xl font-semibold text-gold mb-6">
-                Estamos para Ayudarte
+                Estamos para ayudarte
               </h2>
               <p className="text-gold-light/70 mb-8">
                 Queremos ofrecerte nuestro mejor servicio. Si tenés preguntas
@@ -212,11 +212,11 @@ export default function ContactPage() {
                 <Clock className="h-6 w-6 text-gold" />
               </div>
               <div>
-                <h3 className="text-xl font-medium text-amber-300">Horario</h3>
-                <p className="text-amber-300/70 mt-1">
+                <h3 className="text-xl font-medium text-gold-light">Horario</h3>
+                <p className="text-gold-light/70">
                   Lunes a viernes de{" "}
                   <span className="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md text-sm font-medium">
-                    8am a 12am
+                    8hs a 12hs
                   </span>{" "}
                   y{" "}
                   <span className="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md text-sm font-medium">
@@ -385,7 +385,7 @@ export default function ContactPage() {
       >
         <div className="container mx-auto px-4">
           <h2 className="text-2xl font-semibold text-gold mb-8 text-center">
-            Encuéntranos
+            Donde encontrarnos
           </h2>
           <div className="border border-gold/20 rounded-lg overflow-hidden h-96 md:h-[500px]">
             {/* Utilizando lazy loading para el mapa */}

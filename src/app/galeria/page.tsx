@@ -139,7 +139,7 @@ export default function GalleryPage() {
 
         <Image
           src="/trofeoAboutSection.webp" // Reemplaza con tu imagen real
-          alt="Galería de Trabajos"
+          alt="Galería de trabajos"
           fill
           sizes="(max-width: 768px) 100vw, 100vw"
           priority
@@ -162,7 +162,7 @@ export default function GalleryPage() {
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <h1 className="text-4xl md:text-5xl font-bold text-gold mb-4">
-              Galería de Trabajos
+              Galería de trabajos
             </h1>
             <p className="text-lg md:text-xl text-gold-light/90 max-w-2xl mx-auto">
               Descubre nuestros trabajos más destacados y las empresas que han

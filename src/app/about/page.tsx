@@ -66,7 +66,7 @@ export default function AboutPage() {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            Nuestra Historia
+            Nuestra historia
           </motion.h1>
         </div>
       </section>
