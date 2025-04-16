@@ -5,18 +5,10 @@ import Image from "next/image";
 import { X, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef } from "react";
+import { Producto } from "@/shared/types/catalog";
 
 interface ProductModalProps {
-  product: {
-    id: number;
-    name: string;
-    description: string;
-    image?: string;
-    image_url?: string;
-    categoria: {
-      name: string;
-    } | null;
-  };
+  product: Producto;
   onClose: () => void;
 }
 
@@ -62,14 +54,10 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
     };
   }, [onClose]);
 
-  // Función personalizada para cerrar y disparar el evento
-  const handleClose = () => {
-    onClose();
+  const getImageUrl = (product: Producto): string => {
+    return product.image_url || product.image_url || "/placeholder.svg";
   };
 
-  const getImageUrl = (product: ProductModalProps["product"]): string => {
-    return product.image_url || product.image || "/placeholder.svg";
-  };
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -80,7 +68,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
     >
       {/* Barra superior móvil - Modificada para tener solo el botón Volver */}
       <div className="fixed top-0 left-0 right-0 bg-black border-b border-gold/30 p-3 flex items-center justify-between md:hidden z-[60]">
-        <button onClick={handleClose} className="flex items-center text-gold">
+        <button onClick={onClose} className="flex items-center text-gold">
           <ChevronLeft className="h-5 w-5 mr-1" />
           <span>Volver</span>
         </button>
@@ -110,7 +98,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
             variant="ghost"
             size="icon"
             className="absolute right-2 top-2 z-10 text-gold hover:bg-gold/10 rounded-full"
-            onClick={handleClose}
+            onClick={onClose}
           >
             <X className="h-6 w-6" />
           </Button>
