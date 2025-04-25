@@ -53,8 +53,8 @@ export async function POST(request: Request) {
       { expiresIn: "24h" }
     );
 
-    // Enviar respuesta con token
-    return NextResponse.json({
+    // Crear una respuesta con el token
+    const response = NextResponse.json({
       message: "Login exitoso",
       token,
       user: {
@@ -64,6 +64,19 @@ export async function POST(request: Request) {
         isAdmin: user.is_admin,
       },
     });
+
+    // Establecer la cookie en el servidor con el token JWT
+    response.cookies.set({
+      name: "auth_token",
+      value: token,
+      httpOnly: true,
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60, // 24 horas en segundos
+      sameSite: "lax",
+    });
+
+    return response;
   } catch (error) {
     console.error("Error en login:", error);
     return NextResponse.json(

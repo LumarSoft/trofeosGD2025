@@ -4,13 +4,22 @@ import { cookies } from "next/headers";
 
 export async function POST() {
   try {
-    // Eliminar la cookie auth_token
-    cookies().delete("auth_token");
-
-    return NextResponse.json({
+    // Crear una respuesta
+    const response = NextResponse.json({
       success: true,
       message: "Sesión cerrada correctamente",
     });
+    
+    // Eliminar la cookie auth_token con la misma configuración que al crearla
+    response.cookies.delete({
+      name: "auth_token",
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      sameSite: "lax",
+    });
+
+    return response;
   } catch (error) {
     console.error("Error al cerrar sesión:", error);
     return NextResponse.json(

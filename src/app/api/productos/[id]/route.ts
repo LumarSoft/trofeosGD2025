@@ -1,8 +1,23 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getServerSupabaseClient } from "@/lib/supabaseStorage";
 
-const prisma = new PrismaClient();
+// Definir los tipos localmente sin depender de los tipos de Prisma
+type ProductoWithImages = {
+  id: number;
+  name: string;
+  description: string | null;
+  category_id: number | null;
+  image_url: string | null;
+  images: string | null;
+  position: number;
+  created_at: Date;
+  updated_at: Date;
+  categoria?: {
+    name: string;
+  } | null;
+};
 
 // GET - Obtener un producto por ID
 export async function GET(
@@ -20,7 +35,7 @@ export async function GET(
           },
         },
       },
-    });
+    }) as ProductoWithImages | null;
 
     if (!producto) {
       return NextResponse.json(
@@ -29,7 +44,17 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(producto);
+    // Transformar el producto para incluir las imágenes como array
+    const transformedProduct = {
+      ...producto,
+      images: producto.images 
+        ? JSON.parse(producto.images) 
+        : producto.image_url 
+          ? [producto.image_url]
+          : [],
+    };
+
+    return NextResponse.json(transformedProduct);
   } catch (error) {
     console.error("Error al obtener producto:", error);
     return NextResponse.json(
@@ -55,20 +80,21 @@ export async function PUT(
 
     const id = parseInt(params.id);
     const body = await request.json();
-    const { name, description, stock, category_id, image_url } = body;
+    const { name, description, category_id, images, position } = body;
 
     // Obtener el producto actual para saber si necesitamos desconectar la categoría
     const currentProduct = await prisma.producto.findUnique({
       where: { id },
       include: { categoria: true },
-    });
+    }) as ProductoWithImages | null;
 
     // Preparar datos de actualización
     const updateData = {
       name,
       description,
-      stock: stock !== undefined ? parseInt(stock) : undefined,
-      image_url,
+      images: images ? JSON.stringify(images) : null,
+      image_url: images && images.length > 0 ? images[0] : null, // Mantener compatibilidad con el campo image_url
+      position: position !== undefined ? position : currentProduct?.position || 0, // Preservar la posición actual o usar la nueva
     };
 
     // Manejar la relación de categoría
@@ -94,9 +120,19 @@ export async function PUT(
       include: {
         categoria: true,
       },
-    });
+    }) as ProductoWithImages;
 
-    return NextResponse.json(producto);
+    // Transformar el producto para incluir las imágenes como array
+    const transformedProduct = {
+      ...producto,
+      images: producto.images 
+        ? JSON.parse(producto.images) 
+        : producto.image_url 
+          ? [producto.image_url]
+          : [],
+    };
+
+    return NextResponse.json(transformedProduct);
   } catch (error) {
     console.error("Error al actualizar producto:", error);
     return NextResponse.json(
@@ -121,9 +157,61 @@ export async function DELETE(
     }
 
     const id = parseInt(params.id);
+    
+    // Primero obtener el producto para acceder a sus imágenes
+    const producto = await prisma.producto.findUnique({
+      where: { id }
+    }) as ProductoWithImages | null;
+    
+    if (!producto) {
+      return NextResponse.json(
+        { message: "Producto no encontrado" },
+        { status: 404 }
+      );
+    }
+    
+    // Extraer las URLs de imágenes
+    const imageUrls = producto.images 
+      ? JSON.parse(producto.images) as string[]
+      : producto.image_url 
+        ? [producto.image_url]
+        : [];
+    
+    // Eliminar el producto de la base de datos
     await prisma.producto.delete({
       where: { id },
     });
+    
+    // Eliminar imágenes asociadas de Supabase Storage
+    if (imageUrls.length > 0) {
+      try {
+        const supabase = getServerSupabaseClient();
+        
+        // Para cada imagen, obtener la ruta relativa en el bucket y eliminarla
+        const filesToDelete = imageUrls
+          .filter(url => url && url.includes('/uploads/')) // Solo procesar imágenes en la carpeta 'uploads'
+          .map(url => {
+            // Extraer el nombre del archivo de la URL
+            const fileName = url.split('/').pop();
+            return `uploads/${fileName}`;
+          });
+        
+        if (filesToDelete.length > 0) {
+          const { error } = await supabase.storage
+            .from('productos')
+            .remove(filesToDelete);
+            
+          if (error) {
+            console.error('Error al eliminar imágenes de Supabase:', error);
+          } else {
+            console.log(`${filesToDelete.length} imágenes eliminadas de Supabase`);
+          }
+        }
+      } catch (storageError) {
+        console.error('Error al interactuar con Supabase Storage:', storageError);
+        // No interrumpimos el flujo si hay un error al eliminar las imágenes
+      }
+    }
 
     return NextResponse.json({ message: "Producto eliminado con éxito" });
   } catch (error) {

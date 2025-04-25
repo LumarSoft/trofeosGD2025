@@ -10,6 +10,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
     "@prisma/client": "^6.5.0",
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-label": "^2.1.2",
@@ -36,6 +37,7 @@
     "react-day-picker": "8.10.1",
     "react-dom": "^18",
     "react-dropzone": "^14.3.8",
+    "sharp": "^0.34.1",
     "sonner": "^2.0.2",
     "swr": "^2.3.3",
     "tailwind-merge": "^3.0.2",

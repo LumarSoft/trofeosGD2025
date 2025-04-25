@@ -24,7 +24,7 @@ export default function SearchFilters({
   categoryOptions,
 }: SearchFiltersProps) {
   return (
-    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-6 md:mb-8">
+    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 w-full">
       <div className="relative flex-1">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gold-light/50" />
         <Input

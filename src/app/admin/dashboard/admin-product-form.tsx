@@ -15,6 +15,9 @@ import {
   FileIcon,
   Save,
   RefreshCw,
+  Plus,
+  ArrowLeft,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,7 +56,7 @@ export default function AdminProductForm({
     category: "",
     category_id: undefined as number | undefined,
     category_name: "",
-    image: "/placeholder.svg",
+    images: ["/placeholder.svg"],
   });
 
   // Generamos un ID de sesión único para este formulario
@@ -69,6 +72,7 @@ export default function AdminProductForm({
     size: number;
     sizeFormatted: string;
   } | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   // Estado para manejo de guardado/actualización
   const [isSaving, setIsSaving] = useState(false);
@@ -187,13 +191,13 @@ export default function AdminProductForm({
         category: categoryInfo ? String(categoryInfo.id) : "",
         category_id: product.category_id,
         category_name: categoryName,
-        image: product.image || "/placeholder.svg",
+        images: product.images || ["/placeholder.svg"],
       });
 
       // Si hay una imagen y no es el placeholder, obtener información
-      if (product.image && product.image !== "/placeholder.svg") {
+      if (product.images && product.images.length > 0) {
         setImageInfo({
-          name: product.image.split("/").pop() || "Imagen existente",
+          name: product.images[0].split("/").pop() || "Imagen existente",
           size: 0,
           sizeFormatted: "Imagen existente",
         });
@@ -276,12 +280,19 @@ export default function AdminProductForm({
 
       const data = await response.json();
 
-      // Actualizar el formulario con la URL de la imagen subida
-      setFormData((prev) => ({
-        ...prev,
-        image: data.url,
-        imagePath: data.path,
-      }));
+      // Actualizar el formulario con la nueva imagen
+      setFormData((prev) => {
+        const newImages = [...prev.images];
+        if (newImages[0] === "/placeholder.svg") {
+          newImages[0] = data.url;
+        } else if (newImages.length < 6) {
+          newImages.push(data.url);
+        }
+        return {
+          ...prev,
+          images: newImages,
+        };
+      });
     } catch (error) {
       console.error("Error al subir imagen:", error);
       setGeneralErrorMessage(
@@ -319,14 +330,20 @@ export default function AdminProductForm({
   };
 
   // Eliminar imagen actual
-  const handleRemoveImage = () => {
-    setFormData((prev) => ({
-      ...prev,
-      image: "/placeholder.svg",
-    }));
+  const handleRemoveImage = (index: number) => {
+    setFormData((prev) => {
+      const newImages = [...prev.images];
+      newImages.splice(index, 1);
+      if (newImages.length === 0) {
+        newImages.push("/placeholder.svg");
+      }
+      return {
+        ...prev,
+        images: newImages,
+      };
+    });
     setImageInfo(null);
     setFileSizeError(false);
-    // Resetear el input de archivo también
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -370,79 +387,105 @@ export default function AdminProductForm({
       // Activar estado de guardado
       setIsSaving(true);
 
-      // Comprobar si la imagen es temporal con condiciones mejoradas
-      const isTemporaryImage =
-        formData.image &&
-        formData.image !== "/placeholder.svg" &&
-        (formData.image.includes("/temp/") ||
-          formData.image.includes("temp%2F") ||
-          formData.image.includes("/productos/temp/"));
+      // Array para almacenar las URLs finales de las imágenes
+      let finalImages: string[] = [];
+      // Array para almacenar las rutas temporales que deben eliminarse
+      const tempPaths: string[] = [];
 
-      if (isTemporaryImage) {
-        setUploading(true);
-        console.log("Procesando imagen temporal:", formData.image);
+      // Procesar todas las imágenes temporales
+      for (const image of formData.images) {
+        // Saltar el placeholder
+        if (image === "/placeholder.svg") continue;
 
-        // Confirmar la sesión y subir la imagen a Supabase
-        const response = await fetch("/api/finish-product-session", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            sessionId,
-            save: true,
-            path: formData.image,
-          }),
-        });
+        // Comprobar si la imagen es temporal
+        const isTemporaryImage =
+          image &&
+          (image.includes("/temp/") ||
+            image.includes("temp%2F") ||
+            image.includes("/productos/temp/"));
 
-        const data = await response.json();
+        if (isTemporaryImage) {
+          setUploading(true);
+          console.log("Procesando imagen temporal:", image);
+          
+          // Guardar la ruta temporal para eliminarla después
+          tempPaths.push(image);
 
-        if (response.ok && data.success) {
-          console.log("Imagen procesada correctamente:", data.finalUrl);
-          // Si se devuelve URL de Supabase, usarla
-          const finalData = {
-            ...formData,
-            image: data.finalUrl,
-            category: formData.category_name,
-          };
-          onSave(finalData);
-        } else {
-          // Si hay error con Supabase pero hay URL de fallback
-          if (data.fallbackUrl) {
+          // Confirmar la sesión y subir la imagen a Supabase
+          const response = await fetch("/api/finish-product-session", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              sessionId,
+              save: true,
+              path: image,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            console.log("Imagen procesada correctamente:", data.finalUrl);
+            finalImages.push(data.finalUrl);
+          } else if (data.fallbackUrl) {
             console.warn(
               "Usando URL de imagen local debido a error en Supabase:",
               data.message
             );
-
-            const finalData = {
-              ...formData,
-              image: data.fallbackUrl,
-              category: formData.category_name,
-            };
-
-            setGeneralErrorMessage(
-              `Advertencia: La imagen se guardará localmente debido a un error con Supabase. El producto funcionará pero se recomienda volver a intentarlo más tarde.\n\nError: ${data.message}`
-            );
-            setGeneralErrorDialogOpen(true);
-
-            onSave(finalData);
+            finalImages.push(data.fallbackUrl);
           } else {
-            // Error sin fallback
             throw new Error(data.message || "Error al procesar la imagen");
           }
+        } else {
+          // Si la imagen no es temporal, mantenerla como está
+          finalImages.push(image);
         }
-      } else {
-        console.log("No hay imagen temporal que procesar o es placeholder");
-        // Si no hay imagen nueva o es el placeholder
-        const finalData = {
-          ...formData,
-          category: formData.category_name,
-        };
-        onSave(finalData);
       }
+
+      // Si no hay imágenes finales, usar el placeholder
+      if (finalImages.length === 0) {
+        finalImages = ["/placeholder.svg"];
+      }
+
+      // Preparar datos finales del producto
+      const finalData = {
+        ...formData,
+        images: finalImages,
+        category: formData.category_name,
+      };
+
+      // Limpiar las imágenes temporales que ya han sido procesadas
+      if (tempPaths.length > 0) {
+        try {
+          const cleanupResponse = await fetch("/api/cleanup-temp-images", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              paths: tempPaths
+            }),
+          });
+          
+          const cleanupData = await cleanupResponse.json();
+          if (cleanupResponse.ok) {
+            console.log("Imágenes temporales eliminadas:", cleanupData.deleted);
+          } else {
+            console.warn("No se pudieron eliminar algunas imágenes temporales:", cleanupData.message);
+          }
+        } catch (cleanupError) {
+          console.error("Error al limpiar imágenes temporales:", cleanupError);
+          // No interrumpir el guardado por errores en la limpieza
+        }
+      }
+
+      // Guardar el producto
+      onSave(finalData);
     } catch (error) {
       console.error("Error al finalizar la sesión:", error);
-      setIsSaving(false); // Desactivar estado de guardado en caso de error
+      setIsSaving(false);
       setGeneralErrorMessage(
         `Error al guardar el producto: ${
           error instanceof Error ? error.message : "Error desconocido"
@@ -451,8 +494,6 @@ export default function AdminProductForm({
       setGeneralErrorDialogOpen(true);
     } finally {
       setUploading(false);
-      // No desactivamos setIsSaving aquí porque queremos mantenerlo activo hasta que onSave termine
-      // La función onSave normalmente navegará fuera de este componente
     }
   };
 
@@ -477,6 +518,48 @@ export default function AdminProductForm({
   const handleCloseSizeErrorDialog = () => {
     setSizeErrorDialogOpen(false);
     setFileSizeError(false);
+  };
+
+  // Función para mover una imagen a la izquierda (cambiar posición)
+  const moveImageLeft = (index: number) => {
+    if (index <= 0) return; // No se puede mover más a la izquierda
+    
+    const newImages = [...formData.images];
+    // Intercambiar con el elemento anterior
+    [newImages[index], newImages[index - 1]] = [newImages[index - 1], newImages[index]];
+    
+    setFormData(prev => ({
+      ...prev,
+      images: newImages,
+    }));
+    
+    // Actualizar el índice seleccionado si es necesario
+    if (selectedImageIndex === index) {
+      setSelectedImageIndex(index - 1);
+    } else if (selectedImageIndex === index - 1) {
+      setSelectedImageIndex(index);
+    }
+  };
+
+  // Función para mover una imagen a la derecha (cambiar posición)
+  const moveImageRight = (index: number) => {
+    if (index >= formData.images.length - 1) return; // No se puede mover más a la derecha
+    
+    const newImages = [...formData.images];
+    // Intercambiar con el elemento siguiente
+    [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
+    
+    setFormData(prev => ({
+      ...prev,
+      images: newImages,
+    }));
+    
+    // Actualizar el índice seleccionado si es necesario
+    if (selectedImageIndex === index) {
+      setSelectedImageIndex(index + 1);
+    } else if (selectedImageIndex === index + 1) {
+      setSelectedImageIndex(index);
+    }
   };
 
   return (
@@ -504,10 +587,10 @@ export default function AdminProductForm({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="md:col-span-1">
               <div className="flex flex-col items-center space-y-6">
-                {/* Área de imagen con drag & drop */}
+                {/* Área de imagen principal */}
                 <div
                   {...getRootProps()}
-                  className={`relative w-full h-60 rounded-lg overflow-hidden border-2 ${
+                  className={`relative w-full h-80 rounded-lg overflow-hidden border-2 ${
                     isDragActive
                       ? "border-dashed border-gold"
                       : fileSizeError
@@ -526,19 +609,22 @@ export default function AdminProductForm({
                     disabled={isSaving || uploading}
                   />
                   <Image
-                    src={formData.image || "/placeholder.svg"}
+                    src={
+                      formData.images[selectedImageIndex] || "/placeholder.svg"
+                    }
                     alt="Vista previa del producto"
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
 
                   {/* Botón de eliminación de imagen */}
-                  {formData.image !== "/placeholder.svg" && !isSaving && (
+                  {formData.images[selectedImageIndex] !==
+                    "/placeholder.svg" && (
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleRemoveImage();
+                        handleRemoveImage(selectedImageIndex);
                       }}
                       className="absolute top-2 right-2 bg-black/70 text-white p-1 rounded-full hover:bg-red-600 transition-colors z-10"
                       disabled={isSaving || uploading}
@@ -547,7 +633,6 @@ export default function AdminProductForm({
                     </button>
                   )}
 
-                  {/* Overlay para drag & drop o hover */}
                   {(isDragActive || imageHover) &&
                     !fileSizeError &&
                     !isSaving &&
@@ -557,8 +642,8 @@ export default function AdminProductForm({
                         animate={{ opacity: 1 }}
                         className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center cursor-pointer"
                       >
-                        <Upload className="h-8 w-8 text-gold mb-2" />
-                        <p className="text-gold text-center px-4">
+                        <Upload className="h-12 w-12 text-gold mb-3" />
+                        <p className="text-gold text-center px-4 text-lg">
                           {isDragActive
                             ? "Suelta la imagen aquí"
                             : "Arrastra una imagen o haz clic para seleccionar"}
@@ -567,10 +652,10 @@ export default function AdminProductForm({
                     )}
 
                   {/* Mensaje de error de tamaño dentro del dropzone */}
-                  {fileSizeError && !isSaving && (
+                  {fileSizeError && (
                     <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-red-500 p-4">
-                      <AlertTriangle className="h-8 w-8 mb-2" />
-                      <p className="text-center">
+                      <AlertTriangle className="h-12 w-12 mb-3" />
+                      <p className="text-center text-lg">
                         El archivo excede el tamaño máximo permitido (
                         {formatFileSize(maxFileSize)})
                       </p>
@@ -580,11 +665,89 @@ export default function AdminProductForm({
                           e.stopPropagation();
                           setFileSizeError(false);
                         }}
-                        className="mt-3 px-3 py-1 bg-gold text-black rounded hover:bg-gold-dark"
+                        className="mt-4 px-4 py-2 bg-gold text-black rounded-md hover:bg-gold-dark transition-colors"
                         disabled={isSaving}
                       >
                         Entendido
                       </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Miniaturas de imágenes con controles de reordenamiento */}
+                <div className="grid grid-cols-4 gap-4 w-full">
+                  {formData.images.map((image, index) => (
+                    <div
+                      key={index}
+                      className={`relative h-24 rounded-lg overflow-hidden cursor-pointer border-2 ${
+                        selectedImageIndex === index
+                          ? "border-gold shadow-[0_0_15px_rgba(208,177,110,0.3)]"
+                          : "border-transparent hover:border-gold/50"
+                      } transition-all duration-300`}
+                      onClick={() => setSelectedImageIndex(index)}
+                    >
+                      <Image
+                        src={image}
+                        alt={`Miniatura ${index + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                      
+                      {image !== "/placeholder.svg" && (
+                        <>
+                          {/* Botones de reordenamiento */}
+                          <div className="absolute bottom-1 left-0 right-0 flex justify-center space-x-1 z-10">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                moveImageLeft(index);
+                              }}
+                              className={`bg-black/70 text-gold p-1 rounded-full hover:bg-gold/80 hover:text-black transition-colors ${
+                                index === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                              disabled={index === 0 || isSaving || uploading}
+                            >
+                              <ArrowLeft className="h-3 w-3" />
+                            </button>
+                            
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                moveImageRight(index);
+                              }}
+                              className={`bg-black/70 text-gold p-1 rounded-full hover:bg-gold/80 hover:text-black transition-colors ${
+                                index === formData.images.length - 1 ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                              disabled={index === formData.images.length - 1 || isSaving || uploading}
+                            >
+                              <ArrowRight className="h-3 w-3" />
+                            </button>
+                          </div>
+                          
+                          {/* Botón de eliminar */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveImage(index);
+                            }}
+                            className="absolute top-1 right-1 bg-black/70 text-white p-1 rounded-full hover:bg-red-600 transition-colors z-10"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {formData.images.length < 6 && (
+                    <div
+                      className="relative h-24 rounded-lg overflow-hidden cursor-pointer border-2 border-dashed border-gold/30 flex items-center justify-center hover:bg-gold/10 transition-all duration-300 hover:border-gold group"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Plus className="h-8 w-8 text-gold/50 group-hover:text-gold transition-colors" />
                     </div>
                   )}
                 </div>
@@ -800,34 +963,6 @@ export default function AdminProductForm({
       </Dialog>
 
       {/* Diálogo de errores generales */}
-      <Dialog
-        open={generalErrorDialogOpen}
-        onOpenChange={setGeneralErrorDialogOpen}
-      >
-        <DialogContent className="bg-black border border-gold/30 text-gold-light">
-          <DialogHeader>
-            <DialogTitle className="flex items-center text-xl text-gold">
-              <AlertTriangle className="mr-2 h-5 w-5 text-yellow-500" />
-              Error
-            </DialogTitle>
-          </DialogHeader>
-          <DialogDescription className="text-gold-light/80">
-            <div className="py-2 text-gold-light/90 whitespace-pre-line">
-              {generalErrorMessage}
-            </div>
-          </DialogDescription>
-          <DialogFooter>
-            <Button
-              onClick={() => setGeneralErrorDialogOpen(false)}
-              className="bg-gold hover:bg-gold-dark text-black font-medium"
-            >
-              Aceptar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Diálogo de error de tamaño */}
       <Dialog
         open={generalErrorDialogOpen}
         onOpenChange={setGeneralErrorDialogOpen}

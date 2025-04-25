@@ -29,6 +29,7 @@ export default function AdminLogin() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
+        credentials: "include",
       });
 
       const data = await response.json();
@@ -37,22 +38,20 @@ export default function AdminLogin() {
         throw new Error(data.message || "Error al iniciar sesión");
       }
 
-      // Guardar el token en cookie
-      Cookies.set("auth_token", data.token, {
-        expires: 1,
-        path: "/",
-        sameSite: "strict",
-      });
+      // Ya no es necesario establecer la cookie aquí
+      // La cookie se establece desde el servidor
 
-      // Redirigir al dashboard
-      router.push("/admin/dashboard");
+      // Esperamos un poco antes de redirigir para asegurar que la cookie se establezca
+      setTimeout(() => {
+        // Redirigir al dashboard usando window.location para forzar recarga completa
+        window.location.href = "/admin/dashboard";
+      }, 500);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Error al iniciar sesión";
       setError(
         message || "Credenciales inválidas. Por favor, intente nuevamente."
       );
-    } finally {
       setIsLoading(false);
     }
   };

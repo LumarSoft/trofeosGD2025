@@ -15,12 +15,18 @@ export default function AdminDashboard() {
     categories,
     isFormOpen,
     editingProduct,
-    isLoading, // Get isLoading from useProducts hook
+    isLoading,
     handleAddProduct,
     handleEditProduct,
     handleDeleteProduct,
     handleSaveProduct,
     handleCancelForm,
+    reloadProducts,
+    deleteDialogOpen,
+    setDeleteDialogOpen,
+    productToDelete,
+    deletingProducts,
+    confirmDelete,
   } = useProducts();
 
   return (
@@ -36,7 +42,13 @@ export default function AdminDashboard() {
         handleCancelForm={handleCancelForm}
         handleAddProduct={handleAddProduct}
         onTabChange={setActiveTab}
-        isLoading={isLoading} // Pass isLoading to ProductTabs
+        isLoading={isLoading}
+        reloadProducts={reloadProducts}
+        deleteDialogOpen={deleteDialogOpen}
+        setDeleteDialogOpen={setDeleteDialogOpen}
+        productToDelete={productToDelete}
+        deletingProducts={deletingProducts}
+        confirmDelete={confirmDelete}
       />
     </AdminLayout>
   );

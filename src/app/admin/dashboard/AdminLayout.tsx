@@ -7,6 +7,9 @@ import { toast } from "sonner";
 import Sidebar from "./Sidebar";
 import AdminHeader from "./AdminHeader";
 
+// Variable global para evitar verificaciones repetidas
+let authVerified = false;
+
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
@@ -14,34 +17,58 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(!authVerified);
+  const [isAuthenticated, setIsAuthenticated] = useState(authVerified);
 
   // Determine active section based on pathname
   const activeSection = pathname.includes("/gallery") ? "gallery" : "products";
 
-  // Check if user is authenticated - solo una vez al montar el componente
+  // Check if user is authenticated - solo una vez al montar el componente y si no está ya verificado
   useEffect(() => {
-    const checkAuth = () => {
-      const token = Cookies.get("auth_token");
-      if (!token) {
-        router.push("/admin");
+    const checkAuth = async () => {
+      // Si ya se verificó la autenticación, no hacerlo de nuevo
+      if (authVerified) {
+        setIsLoading(false);
+        setIsAuthenticated(true);
         return;
       }
-      setIsAuthenticated(true);
-      setIsLoading(false);
+      
+      console.log("Verificando autenticación...");
+      try {
+        // Verificar autenticación haciendo una petición al servidor
+        const response = await fetch("/api/auth/verify", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          // Incluir credentials para que se envíen las cookies
+          credentials: "include",
+        });
+
+        console.log("Respuesta de verificación:", response.status);
+        
+        if (!response.ok) {
+          // Si no está autenticado, redirigir al login
+          console.error("No autenticado, redirigiendo al login");
+          router.push("/admin");
+          return;
+        }
+
+        const data = await response.json();
+        console.log("Usuario autenticado:", data.user);
+        
+        // Marcar como verificado globalmente
+        authVerified = true;
+        setIsAuthenticated(true);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error al verificar autenticación:", error);
+        router.push("/admin");
+      }
     };
 
     checkAuth();
   }, []); // Dependencia vacía para que solo se ejecute al montar el componente
-
-  // Efecto para manejar cambios de ruta sin mostrar pantalla de carga
-  useEffect(() => {
-    // Si ya estamos autenticados, no necesitamos mostrar la pantalla de carga
-    if (isAuthenticated) {
-      setIsLoading(false);
-    }
-  }, [pathname, isAuthenticated]);
 
   const handleLogout = async () => {
     try {
@@ -53,6 +80,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // Asegura que las cookies se envíen correctamente
       });
 
       if (!response.ok) {
@@ -60,21 +88,36 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         throw new Error(data.message || "Error al cerrar sesión");
       }
 
-      // Remove client-side cookie
-      Cookies.remove("auth_token");
+      // Ya no necesitamos eliminar la cookie aquí
+      // La cookie se elimina desde el servidor
       setIsAuthenticated(false);
+      
+      // Resetear la variable global
+      authVerified = false;
 
       // Redirect to login
       router.push("/admin");
       toast.success("Sesión cerrada correctamente");
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
-      // Still try to remove cookie and redirect
-      Cookies.remove("auth_token");
+      // Aún así, redirigir al login
       setIsAuthenticated(false);
+      authVerified = false;
       router.push("/admin");
     }
   };
+
+  // Si todavía está cargando, mostrar indicador de carga
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-12 w-12 border-t-2 border-b-2 border-gold rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gold-light">Verificando autenticación...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black flex">

@@ -27,8 +27,8 @@ export interface ProductFormData {
   category: string;
   category_id?: number;
   category_name: string;
-  image: string;
-  imagePath?: string;
+  images: string[]; // Array de URLs de imágenes
+  imagePaths?: string[]; // Array de paths de imágenes
 }
 
 /**

@@ -4,7 +4,7 @@ const nextConfig = {
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    domains: ["bdxxvwjghayycdueeoot.supabase.co"],
+    domains: ["bdxxvwjghayycdueeoot.supabase.co", "huhwfsbdevyoszkowkkj.supabase.co"],
   },
   // Optimizar para entornos serverless
   serverRuntimeConfig: {

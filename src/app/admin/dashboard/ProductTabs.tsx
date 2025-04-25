@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdminProductForm from "@/app/admin/dashboard/admin-product-form";
 import ProductsTable from "./ProductsTable";
 import CategoriesManager from "./CategoriesManager";
+import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -18,7 +19,13 @@ interface ProductTabsProps {
   handleCancelForm: () => void;
   handleAddProduct: () => void;
   onTabChange?: (tab: string) => void;
-  isLoading: boolean; // Add isLoading prop
+  isLoading: boolean;
+  reloadProducts?: () => Promise<void>;
+  deleteDialogOpen: boolean;
+  setDeleteDialogOpen: (open: boolean) => void;
+  productToDelete: number | null;
+  deletingProducts: number[];
+  confirmDelete: () => void;
 }
 
 export default function ProductTabs({
@@ -32,7 +39,13 @@ export default function ProductTabs({
   handleCancelForm,
   handleAddProduct,
   onTabChange,
-  isLoading, // Add isLoading parameter
+  isLoading,
+  reloadProducts,
+  deleteDialogOpen,
+  setDeleteDialogOpen,
+  productToDelete,
+  deletingProducts,
+  confirmDelete,
 }: ProductTabsProps) {
   const [categories, setCategories] = useState(initialCategories);
   const [activeTab, setActiveTab] = useState("products");
@@ -62,6 +75,11 @@ export default function ProductTabs({
       onTabChange(value);
     }
   };
+
+  // Encontrar el nombre del producto a eliminar (para mostrar en el diálogo)
+  const productToDeleteName = productToDelete 
+    ? products.find(p => p.id === productToDelete)?.name || "este producto" 
+    : "este producto";
 
   return (
     <div className="space-y-6">
@@ -116,7 +134,9 @@ export default function ProductTabs({
               products={products}
               handleEditProduct={handleEditProduct}
               handleDeleteProduct={handleDeleteProduct}
-              isLoading={isLoading} // Pass isLoading to ProductsTable
+              isLoading={isLoading}
+              reloadProducts={reloadProducts}
+              deletingProducts={deletingProducts}
             />
           )}
         </div>
@@ -131,6 +151,15 @@ export default function ProductTabs({
           />
         </div>
       )}
+
+      {/* Diálogo de confirmación de eliminación */}
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={confirmDelete}
+        productName={productToDeleteName}
+        productId={productToDelete || undefined}
+      />
     </div>
   );
 }

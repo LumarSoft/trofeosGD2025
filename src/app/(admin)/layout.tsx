@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { Providers } from "../providers";
+import { Providers } from "@/app/providers";
 
 export const metadata: Metadata = {
-  title: "Admin Dashboard - TrofeosGD",
+  title: "TrofeosGD - Admin",
   description: "Panel de administración de TrofeosGD",
 };
 
@@ -13,7 +13,9 @@ export default function AdminLayout({
 }) {
   return (
     <Providers>
-      <div className="min-h-screen bg-background">{children}</div>
+      <div className="min-h-screen bg-background">
+        {children}
+      </div>
     </Providers>
   );
-}
+} 
