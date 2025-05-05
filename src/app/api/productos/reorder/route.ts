@@ -22,24 +22,40 @@ export async function POST(request: Request) {
       );
     }
 
-    // Actualizar la posición de cada producto
-    const updatePromises = productOrders.map(({ id, position }) => {
-      return prisma.producto.update({
-        where: { id },
-        data: { position },
+    // Validar que todos los productos tengan ID y posición
+    if (!productOrders.every(order => order.id && order.position !== undefined)) {
+      return NextResponse.json(
+        { message: "Cada producto debe tener un ID y una posición" },
+        { status: 400 }
+      );
+    }
+
+    // Actualizar la posición de cada producto en una transacción
+    try {
+      await prisma.$transaction(
+        productOrders.map(({ id, position }) =>
+          prisma.producto.update({
+            where: { id },
+            data: { position },
+          })
+        )
+      );
+
+      // Guardar timestamp de actualización para que el catálogo lo detecte
+      const timestamp = Date.now();
+
+      return NextResponse.json({
+        success: true,
+        message: "Orden de productos actualizado correctamente",
+        timestamp,
       });
-    });
-
-    await Promise.all(updatePromises);
-
-    // Guardar timestamp de actualización para que el catálogo lo detecte
-    const timestamp = Date.now();
-
-    return NextResponse.json({
-      success: true,
-      message: "Orden de productos actualizado correctamente",
-      timestamp,
-    });
+    } catch (error) {
+      console.error("Error en la transacción de actualización:", error);
+      return NextResponse.json(
+        { message: "Error al actualizar el orden de los productos" },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error("Error al actualizar el orden de los productos:", error);
     return NextResponse.json(

@@ -41,7 +41,7 @@ export default function ProductsTable({
   // Ordenar productos para mostrar los más recientes primero (asumiendo que los IDs más altos son los más recientes)
   // Y luego por posición si está disponible
   useMemo(() => {
-    // Primero ordenar por posición (si existe)
+    // Ordenar por posición (si existe) y luego por ID como respaldo
     const sorted = [...products].sort((a, b) => {
       // Si ambos tienen posición, usar ese valor
       if (a.position !== undefined && b.position !== undefined) {
@@ -51,8 +51,8 @@ export default function ProductsTable({
       if (a.position !== undefined) return -1;
       if (b.position !== undefined) return 1;
       
-      // Si ninguno tiene posición, ordenar por ID descendente (más reciente primero)
-      return b.id - a.id;
+      // Si ninguno tiene posición, ordenar por ID ascendente
+      return a.id - b.id;
     });
     
     console.log("Productos ordenados por posición:", sorted.map(p => ({ id: p.id, name: p.name, pos: p.position })));
