@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Actualizar la posición de cada producto en una transacción
+    // Actualizar todas las posiciones en una sola transacción
     try {
       await prisma.$transaction(
         productOrders.map(({ id, position }) =>
@@ -41,13 +41,10 @@ export async function POST(request: Request) {
         )
       );
 
-      // Guardar timestamp de actualización para que el catálogo lo detecte
-      const timestamp = Date.now();
-
       return NextResponse.json({
         success: true,
         message: "Orden de productos actualizado correctamente",
-        timestamp,
+        timestamp: Date.now(),
       });
     } catch (error) {
       console.error("Error en la transacción de actualización:", error);

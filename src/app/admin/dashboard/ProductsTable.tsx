@@ -1,19 +1,29 @@
 import Image from "next/image";
-import { Pencil, Trash2, GripVertical } from "lucide-react";
+import { Pencil, Trash2, GripVertical, Save, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Product {
   id: number;
   name: string;
   description: string;
-  image?: string; // Campo anterior (mantener para compatibilidad)
-  image_url?: string; // Campo anterior (mantener para compatibilidad)
-  images?: string[]; // Nuevo campo de imágenes
+  image?: string;
+  image_url?: string;
+  images?: string[];
   category: string;
-  position?: number; // Nuevo campo para el orden
+  position?: number;
 }
 
 interface ProductsTableProps {
@@ -22,7 +32,7 @@ interface ProductsTableProps {
   handleDeleteProduct: (productId: number) => void;
   isLoading?: boolean;
   reloadProducts?: () => Promise<void>;
-  deletingProducts?: number[]; // Añadir array de IDs de productos en proceso de eliminación
+  deletingProducts?: number[];
 }
 
 export default function ProductsTable({
@@ -31,97 +41,179 @@ export default function ProductsTable({
   handleDeleteProduct,
   isLoading = false,
   reloadProducts,
-  deletingProducts = [], // Default a array vacío
+  deletingProducts = [],
 }: ProductsTableProps) {
-  // Estado local para productos ordenados
   const [orderedProducts, setOrderedProducts] = useState<Product[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
-  // Ordenar productos para mostrar los más recientes primero (asumiendo que los IDs más altos son los más recientes)
-  // Y luego por posición si está disponible
+  // Ref para el scroll automático durante el arrastre
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  // Prevenir navegación con cambios sin guardar
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Función para manejar acciones que requieren confirmación
+  const handleActionWithConfirmation = (action: () => void) => {
+    if (hasUnsavedChanges) {
+      setPendingAction(() => action);
+      setShowUnsavedChangesDialog(true);
+    } else {
+      action();
+    }
+  };
+
+  // Función para descartar cambios
+  const handleDiscardChanges = () => {
+    setOrderedProducts(products);
+    setHasUnsavedChanges(false);
+    setShowUnsavedChangesDialog(false);
+    if (pendingAction) {
+      pendingAction();
+      setPendingAction(null);
+    }
+  };
+
+  // Ordenar productos inicialmente
   useMemo(() => {
-    // Ordenar por posición (si existe) y luego por ID como respaldo
     const sorted = [...products].sort((a, b) => {
-      // Si ambos tienen posición, usar ese valor
       if (a.position !== undefined && b.position !== undefined) {
         return a.position - b.position;
       }
-      // Si uno tiene posición y el otro no, el que tiene posición va primero
       if (a.position !== undefined) return -1;
       if (b.position !== undefined) return 1;
-      
-      // Si ninguno tiene posición, ordenar por ID ascendente
       return a.id - b.id;
     });
-    
-    console.log("Productos ordenados por posición:", sorted.map(p => ({ id: p.id, name: p.name, pos: p.position })));
     setOrderedProducts(sorted);
   }, [products]);
 
   // Función para construir URLs completas de Supabase si es necesario
   const buildSupabaseUrl = (path: string): string => {
-    // Si ya es una URL completa, devolverla
     if (path && path.startsWith("http")) {
       return path;
     }
 
-    // Si es una ruta relativa que parece ser de supabase, construir la URL completa
     if (path && path.includes("uploads/")) {
-      // Extraer solo el nombre del archivo
       const fileName = path.split("/").pop();
       if (fileName) {
         return `https://bdxxvwjghayycdueeoot.supabase.co/storage/v1/object/public/productos/uploads/${fileName}`;
       }
     }
 
-    // Si es una imagen local o placeholder, devolverla sin cambios
     return path;
   };
 
   // Función auxiliar para obtener la URL de la imagen
   const getImageUrl = (product: Product): string => {
-    // Primero intentar usar el nuevo campo images
     if (Array.isArray(product.images) && product.images.length > 0) {
       return buildSupabaseUrl(product.images[0]);
     }
-    // Si no hay images, usar los campos antiguos como fallback
     const rawUrl = product.image_url || product.image || "/placeholder.svg";
     return buildSupabaseUrl(rawUrl);
   };
 
-  // Manejar el fin del arrastre
-  const handleDragEnd = async (result: any) => {
-    setIsDragging(false);
+  // Scroll automático durante el arrastre
+  useEffect(() => {
+    if (!isDragging || !tableRef.current) return;
 
-    // Si no hay destino (se soltó fuera del área) o no se movió, no hacer nada
-    if (!result.destination || result.source.index === result.destination.index) {
+    const handleAutoScroll = (e: MouseEvent) => {
+      if (!tableRef.current) return;
+
+      const container = tableRef.current;
+      const containerRect = container.getBoundingClientRect();
+      const scrollSpeed = 15;
+      const scrollThreshold = 60; // Área sensible en píxeles
+
+      // Scroll hacia abajo
+      if (e.clientY > containerRect.bottom - scrollThreshold) {
+        container.scrollTop += scrollSpeed;
+      }
+      // Scroll hacia arriba
+      else if (e.clientY < containerRect.top + scrollThreshold) {
+        container.scrollTop -= scrollSpeed;
+      }
+    };
+
+    window.addEventListener("mousemove", handleAutoScroll);
+    return () => window.removeEventListener("mousemove", handleAutoScroll);
+  }, [isDragging]);
+
+  // Manejar el inicio del arrastre
+  const handleDragStart = (result: any) => {
+    setIsDragging(true);
+    setDraggedItemId(result.draggableId);
+
+    // Añadir clase al body para cambiar el cursor en toda la página
+    document.body.classList.add("dragging");
+  };
+
+  // Manejar el fin del arrastre
+  const handleDragEnd = (result: any) => {
+    setIsDragging(false);
+    setDraggedItemId(null);
+    setDropTargetId(null);
+
+    // Remover clase del body
+    document.body.classList.remove("dragging");
+
+    if (
+      !result.destination ||
+      result.source.index === result.destination.index
+    ) {
       return;
     }
 
-    // Reordenar los productos localmente
+    // Aplicar los cambios de orden con un enfoque que mantenga mejor la estabilidad visual
     const items = Array.from(orderedProducts);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    // Actualizar posiciones en el array local
     const updatedItems = items.map((item, index) => ({
       ...item,
       position: index,
     }));
 
-    // Actualizar el estado local inmediatamente
     setOrderedProducts(updatedItems);
+    setHasUnsavedChanges(true);
+  };
 
-    // Preparar datos para enviar a la API
-    const productOrders = updatedItems.map((product, index) => ({
-      id: product.id,
-      position: index,
-    }));
+  // Manejar el movimiento durante el arrastre para resaltar la zona de destino
+  const handleDragUpdate = (result: any) => {
+    if (!result.destination) {
+      setDropTargetId(null);
+      return;
+    }
 
-    // Guardar el nuevo orden en la base de datos
+    const targetId = `product-${orderedProducts[result.destination.index]?.id}`;
+    setDropTargetId(targetId);
+  };
+
+  // Guardar el nuevo orden
+  const handleSaveOrder = async () => {
+    if (!hasUnsavedChanges) return;
+
     try {
       setIsSavingOrder(true);
+      const productOrders = orderedProducts.map((product, index) => ({
+        id: product.id,
+        position: index,
+      }));
+
       const response = await fetch("/api/productos/reorder", {
         method: "POST",
         headers: {
@@ -131,38 +223,140 @@ export default function ProductsTable({
       });
 
       if (!response.ok) {
-        throw new Error("Error al guardar el orden");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al guardar el orden");
       }
 
-      // Guardar timestamp de actualización para que el catálogo lo detecte
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         localStorage.setItem("admin_update_timestamp", Date.now().toString());
       }
 
-      // Refrescar productos desde el servidor para asegurar la consistencia
       if (reloadProducts) {
         await reloadProducts();
-        toast.success("Orden de productos actualizado");
-      } else {
-        toast.success("Orden actualizado. Recarga la página para ver los cambios.");
       }
+
+      setHasUnsavedChanges(false);
+      toast.success("Orden de productos guardado correctamente");
     } catch (error) {
-      console.error("Error al actualizar el orden:", error);
-      toast.error("No se pudo actualizar el orden de los productos");
+      console.error("Error al guardar el orden:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "No se pudo guardar el orden de los productos"
+      );
     } finally {
       setIsSavingOrder(false);
     }
   };
 
+  // Modificar handleEditProduct para usar la confirmación
+  const handleEditWithConfirmation = (product: Product) => {
+    handleActionWithConfirmation(() => handleEditProduct(product));
+  };
+
+  // Modificar handleDeleteProduct para usar la confirmación
+  const handleDeleteWithConfirmation = (productId: number) => {
+    handleActionWithConfirmation(() => handleDeleteProduct(productId));
+  };
+
   return (
-    <div className="border border-gold/30 rounded-lg overflow-hidden">
-      <div className="overflow-x-auto">
+    <div className="border border-gold/30 rounded-lg overflow-hidden relative">
+      {/* Estilos para drag & drop */}
+      <style jsx global>{`
+        /* Estilo para el cursor durante el arrastre en toda la página */
+        body.dragging {
+          cursor: grabbing !important;
+        }
+
+        /* Estilos para el item siendo arrastrado */
+        .dragging-item {
+          background-color: rgba(208, 177, 110, 0.15) !important;
+          border: 1px dashed rgba(208, 177, 110, 0.4) !important;
+          border-radius: 4px;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        /* Estilo para la zona de destino */
+        .drop-target {
+          border-top: 2px dashed rgba(208, 177, 110, 0.7) !important;
+          background-color: rgba(208, 177, 110, 0.05) !important;
+        }
+
+        /* Animación suave para todos los elementos de la tabla */
+        .products-table-row {
+          transition: transform 0.2s ease, background-color 0.2s ease,
+            opacity 0.2s ease;
+        }
+
+        /* Estilo para el grip */
+        .drag-handle {
+          transition: color 0.2s ease;
+        }
+
+        .drag-handle:hover {
+          color: rgba(208, 177, 110, 0.9) !important;
+        }
+
+        /* Animación suave para la tabla en modo arrastre */
+        .table-dragging tbody tr:not(.dragging-item) {
+          transition: transform 0.25s ease;
+        }
+      `}</style>
+
+      {/* Barra superior con botón de guardar */}
+      {hasUnsavedChanges && (
+        <div className="bg-gold/5 border-b border-gold/10 p-4 flex justify-between items-center">
+          <div className="text-gold-light/70 text-sm flex items-center">
+            <AlertTriangle className="h-4 w-4 text-gold mr-2" />
+            <span className="text-gold font-medium mr-2">
+              Hay cambios sin guardar
+            </span>
+            <span className="text-gold-light/50">
+              Arrastra y suelta las filas para reordenar los productos
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => handleDiscardChanges()}
+              className="border-gold/30 text-gold hover:bg-gold/10"
+            >
+              Descartar cambios
+            </Button>
+            <Button
+              onClick={handleSaveOrder}
+              disabled={isSavingOrder}
+              className="bg-gold hover:bg-gold-dark text-black font-medium transition-all duration-300 hover:shadow-[0_0_15px_rgba(208,177,110,0.3)] min-w-[140px]"
+            >
+              {isSavingOrder ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-black mr-2"></div>
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar orden
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div
+        className={`overflow-x-auto max-h-[70vh] overflow-y-auto ${
+          isDragging ? "table-dragging" : ""
+        }`}
+        ref={tableRef}
+      >
         <DragDropContext
-          onDragStart={() => setIsDragging(true)}
+          onDragStart={handleDragStart}
+          onDragUpdate={handleDragUpdate}
           onDragEnd={handleDragEnd}
         >
           <table className="w-full">
-            <thead className="bg-gold/10">
+            <thead className="bg-gold/10 sticky top-0 z-10">
               <tr>
                 <th className="px-4 py-3 text-left text-gold font-medium w-8"></th>
                 <th className="px-4 py-3 text-left text-gold font-medium">
@@ -225,19 +419,34 @@ export default function ProductsTable({
                           <tr
                             ref={provided.innerRef}
                             {...provided.draggableProps}
-                            className={`${
-                              snapshot.isDragging
-                                ? "bg-gold/5 shadow-lg"
-                                : deletingProducts.includes(product.id)
-                                ? "opacity-50 bg-destructive/5" 
-                                : "hover:bg-gold/5"
-                            } transition-all duration-300`}
+                            className={`products-table-row
+                              ${snapshot.isDragging ? "dragging-item" : ""}
+                              ${
+                                draggedItemId === `product-${product.id}`
+                                  ? "opacity-90"
+                                  : ""
+                              }
+                              ${
+                                dropTargetId === `product-${product.id}`
+                                  ? "drop-target"
+                                  : ""
+                              }
+                              ${
+                                deletingProducts.includes(product.id)
+                                  ? "opacity-50 bg-destructive/5"
+                                  : "hover:bg-gold/5"
+                              }
+                              transition-all duration-300
+                            `}
+                            style={{
+                              ...provided.draggableProps.style,
+                            }}
                           >
                             <td
                               className="px-2 py-3 cursor-grab"
                               {...provided.dragHandleProps}
                             >
-                              <div className="flex justify-center items-center text-gold-light/50">
+                              <div className="flex justify-center items-center text-gold-light/50 drag-handle hover:text-gold-light/80">
                                 <GripVertical className="h-5 w-5" />
                               </div>
                             </td>
@@ -260,7 +469,6 @@ export default function ProductsTable({
                             <td className="px-4 py-3 text-gold-light/70">
                               {product.category}
                             </td>
-
                             <td className="px-4 py-3 text-gold-light/70 max-w-xs truncate">
                               {product.description}
                             </td>
@@ -270,8 +478,11 @@ export default function ProductsTable({
                                   variant="ghost"
                                   size="icon"
                                   className="text-gold-light/70 hover:text-gold hover:bg-gold/10"
-                                  onClick={() => handleEditProduct(product)}
-                                  disabled={isDragging || deletingProducts.includes(product.id)}
+                                  onClick={() => handleEditWithConfirmation(product)}
+                                  disabled={
+                                    isDragging ||
+                                    deletingProducts.includes(product.id)
+                                  }
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
@@ -279,8 +490,11 @@ export default function ProductsTable({
                                   variant="ghost"
                                   size="icon"
                                   className="text-gold-light/70 hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => handleDeleteProduct(product.id)}
-                                  disabled={isDragging || deletingProducts.includes(product.id)}
+                                  onClick={() => handleDeleteWithConfirmation(product.id)}
+                                  disabled={
+                                    isDragging ||
+                                    deletingProducts.includes(product.id)
+                                  }
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -298,11 +512,44 @@ export default function ProductsTable({
           </table>
         </DragDropContext>
       </div>
-      {!isLoading && orderedProducts.length > 1 && (
-        <div className="p-4 text-center text-gold-light/70 text-sm">
-          Arrastra y suelta las filas para reordenar los productos
+
+      {/* Mensaje de ayuda en la parte inferior */}
+      {!hasUnsavedChanges && !isLoading && orderedProducts.length > 1 && (
+        <div className="p-4 border-t border-gold/10 text-center text-gold-light/70 text-sm">
+          <div className="flex items-center justify-center gap-2">
+            <GripVertical className="h-4 w-4 text-gold-light/50" />
+            <span>
+              Arrastra y suelta las filas para reordenar los productos
+            </span>
+          </div>
         </div>
       )}
+
+      {/* Indicador de arrastre activo */}
+      {isDragging && (
+        <div className="fixed bottom-6 right-6 bg-gold text-black px-4 py-2 rounded-full shadow-lg z-50 flex items-center">
+          <GripVertical className="h-4 w-4 mr-2" />
+          <span className="font-medium">Ordenando productos...</span>
+        </div>
+      )}
+
+      {/* Diálogo de confirmación para cambios sin guardar */}
+      <AlertDialog open={showUnsavedChangesDialog} onOpenChange={setShowUnsavedChangesDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hay cambios sin guardar</AlertDialogTitle>
+            <AlertDialogDescription>
+              Si continúas, perderás los cambios en el orden de los productos. ¿Deseas continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDiscardChanges} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Descartar cambios
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
