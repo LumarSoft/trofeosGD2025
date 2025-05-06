@@ -28,7 +28,7 @@ async function retryOperation<T>(
   throw lastError;
 }
 
-// POST - Actualizar el orden de los productos
+// POST - Actualizar el orden de los productos mediante swap
 export async function POST(request: Request) {
   try {
     // Verificar autenticación
@@ -37,92 +37,60 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "No autorizado" }, { status: 401 });
     }
 
-    // Leer el body que contiene el nuevo orden
+    // Leer el body que contiene los productos a intercambiar
     const body = await request.json();
-    const { productOrders, chunkIndex = 0, totalChunks = 1 } = body;
+    const { sourceProduct, destinationProduct } = body;
 
-    if (!productOrders || !Array.isArray(productOrders)) {
+    if (!sourceProduct?.id || !destinationProduct?.id) {
       return NextResponse.json(
-        { message: "Formato de datos inválido" },
-        { status: 400 }
-      );
-    }
-
-    // Limitar el número de productos a procesar para evitar sobrecarga
-    const maxProductsToProcess = 50;
-    if (productOrders.length > maxProductsToProcess) {
-      return NextResponse.json(
-        {
-          message: `No se pueden procesar más de ${maxProductsToProcess} productos a la vez`,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Validar que todos los productos tengan ID y posición
-    if (
-      !productOrders.every((order) => order.id && order.position !== undefined)
-    ) {
-      return NextResponse.json(
-        { message: "Cada producto debe tener un ID y una posición" },
+        { message: "Se requieren los IDs de ambos productos" },
         { status: 400 }
       );
     }
 
     try {
-      // Verificar que todos los productos existan
-      const productIds = productOrders.map((order) => order.id);
+      // Realizar el swap en una única transacción
+      await prisma.$transaction(async (tx) => {
+        // Obtener las posiciones actuales
+        const [source, destination] = await Promise.all([
+          tx.producto.findUnique({
+            where: { id: sourceProduct.id },
+            select: { position: true },
+          }),
+          tx.producto.findUnique({
+            where: { id: destinationProduct.id },
+            select: { position: true },
+          }),
+        ]);
 
-      const existingProducts = await retryOperation(() =>
-        prisma.producto.findMany({
-          where: {
-            id: {
-              in: productIds,
-            },
-          },
-          select: {
-            id: true,
-          },
-        })
-      );
+        if (!source || !destination) {
+          throw new Error("Uno o ambos productos no existen");
+        }
 
-      if (existingProducts.length !== productIds.length) {
-        return NextResponse.json(
-          { message: "Algunos productos no existen" },
-          { status: 400 }
-        );
-      }
-
-      // Procesar el chunk actual en una única transacción
-      await retryOperation(async () => {
-        await prisma.$transaction(
-          productOrders.map(({ id, position }) =>
-            prisma.producto.update({
-              where: { id },
-              data: { position },
-            })
-          )
-        );
+        // Intercambiar las posiciones
+        await Promise.all([
+          tx.producto.update({
+            where: { id: sourceProduct.id },
+            data: { position: destination.position },
+          }),
+          tx.producto.update({
+            where: { id: destinationProduct.id },
+            data: { position: source.position },
+          }),
+        ]);
       });
 
-      // Devolver información sobre el progreso
       return NextResponse.json({
         success: true,
-        message: "Chunk procesado correctamente",
-        chunkIndex,
-        totalChunks,
-        processedCount: productOrders.length,
-        isComplete: chunkIndex === totalChunks - 1,
+        message: "Posiciones actualizadas correctamente",
         timestamp: Date.now(),
       });
     } catch (error) {
       console.error("Error en la actualización:", error);
       return NextResponse.json(
         {
-          message: "Error al actualizar el orden de los productos",
+          message: "Error al actualizar las posiciones",
           error: error instanceof Error ? error.message : "Error desconocido",
-          chunkIndex,
-          totalChunks,
         },
         { status: 500 }
       );

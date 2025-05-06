@@ -53,51 +53,15 @@ export default function ProductsTable({
   const [orderedProducts, setOrderedProducts] = useState<Product[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
-  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
-    useState(false);
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [saveProgress, setSaveProgress] = useState(0);
   const [showProgressBar, setShowProgressBar] = useState(false);
 
   // Ref para el scroll automático durante el arrastre
   const tableRef = useRef<HTMLDivElement>(null);
-
-  // Prevenir navegación con cambios sin guardar
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges]);
-
-  // Función para manejar acciones que requieren confirmación
-  const handleActionWithConfirmation = (action: () => void) => {
-    if (hasUnsavedChanges) {
-      setPendingAction(() => action);
-      setShowUnsavedChangesDialog(true);
-    } else {
-      action();
-    }
-  };
-
-  // Función para descartar cambios
-  const handleDiscardChanges = () => {
-    setOrderedProducts(products);
-    setHasUnsavedChanges(false);
-    setShowUnsavedChangesDialog(false);
-    if (pendingAction) {
-      pendingAction();
-      setPendingAction(null);
-    }
-  };
 
   // Ordenar productos inicialmente
   useMemo(() => {
@@ -111,6 +75,26 @@ export default function ProductsTable({
     });
     setOrderedProducts(sorted);
   }, [products]);
+
+  // Función para manejar acciones que requieren confirmación
+  const handleActionWithConfirmation = (action: () => void) => {
+    if (isSavingOrder) {
+      setPendingAction(() => action);
+      setShowUnsavedChangesDialog(true);
+    } else {
+      action();
+    }
+  };
+
+  // Función para descartar cambios
+  const handleDiscardChanges = () => {
+    setOrderedProducts(products);
+    setShowUnsavedChangesDialog(false);
+    if (pendingAction) {
+      pendingAction();
+      setPendingAction(null);
+    }
+  };
 
   // Función para construir URLs completas de Supabase si es necesario
   const buildSupabaseUrl = (path: string): string => {
@@ -173,7 +157,7 @@ export default function ProductsTable({
   };
 
   // Manejar el fin del arrastre
-  const handleDragEnd = (result: any) => {
+  const handleDragEnd = async (result: any) => {
     setIsDragging(false);
     setDraggedItemId(null);
     setDropTargetId(null);
@@ -181,25 +165,74 @@ export default function ProductsTable({
     // Remover clase del body
     document.body.classList.remove("dragging");
 
-    if (
-      !result.destination ||
-      result.source.index === result.destination.index
-    ) {
+    if (!result.destination || result.source.index === result.destination.index) {
       return;
     }
 
-    // Aplicar los cambios de orden con un enfoque que mantenga mejor la estabilidad visual
-    const items = Array.from(orderedProducts);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
+    const sourceProduct = orderedProducts[result.source.index];
+    const destinationProduct = orderedProducts[result.destination.index];
 
-    const updatedItems = items.map((item, index) => ({
-      ...item,
-      position: index,
-    }));
+    try {
+      setIsSavingOrder(true);
+      setShowProgressBar(true);
+      setSaveProgress(0);
 
-    setOrderedProducts(updatedItems);
-    setHasUnsavedChanges(true);
+      const response = await fetch("/api/productos/reorder", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sourceProduct,
+          destinationProduct,
+        }),
+        credentials: "same-origin",
+      });
+
+      if (!response.ok) {
+        let errorMessage = `Error al actualizar el orden (Status: ${response.status})`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          console.error("Error al parsear la respuesta:", e);
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Actualizar el estado local
+      const items = Array.from(orderedProducts);
+      const [reorderedItem] = items.splice(result.source.index, 1);
+      items.splice(result.destination.index, 0, reorderedItem);
+
+      setOrderedProducts(items);
+      setSaveProgress(100);
+
+      // Actualizar timestamp para sincronización
+      if (typeof window !== "undefined") {
+        localStorage.setItem("admin_update_timestamp", Date.now().toString());
+      }
+
+      // Recargar productos
+      if (reloadProducts) {
+        await reloadProducts();
+      }
+
+      toast.success("Orden actualizado correctamente");
+    } catch (error) {
+      console.error("Error al actualizar el orden:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "No se pudo actualizar el orden de los productos"
+      );
+      
+      // Revertir el orden en caso de error
+      setOrderedProducts(products);
+    } finally {
+      setIsSavingOrder(false);
+      setShowProgressBar(false);
+    }
   };
 
   // Manejar el movimiento durante el arrastre para resaltar la zona de destino
@@ -211,136 +244,6 @@ export default function ProductsTable({
 
     const targetId = `product-${orderedProducts[result.destination.index]?.id}`;
     setDropTargetId(targetId);
-  };
-
-  // Guardar el nuevo orden
-  const handleSaveOrder = async () => {
-    if (!hasUnsavedChanges) return;
-
-    try {
-      setIsSavingOrder(true);
-      setShowProgressBar(true);
-      setSaveProgress(0);
-
-      // Limitamos el número de productos a procesar para evitar problemas
-      if (orderedProducts.length > 200) {
-        toast.error("No se pueden reordenar más de 200 productos a la vez");
-        return;
-      }
-
-      const productOrders = orderedProducts.map((product, index) => ({
-        id: product.id,
-        position: index,
-      }));
-
-      // Dividir los productos en chunks de 50
-      const chunkSize = 50;
-      const chunks = [];
-      for (let i = 0; i < productOrders.length; i += chunkSize) {
-        chunks.push(productOrders.slice(i, i + chunkSize));
-      }
-
-      // Procesar cada chunk secuencialmente
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
-        
-        // Actualizar el progreso
-        const progress = Math.round(((i + 1) / chunks.length) * 100);
-        setSaveProgress(progress);
-
-        // Agregar un timeout para la petición fetch
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos por chunk
-
-        try {
-          const response = await fetch("/api/productos/reorder", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              productOrders: chunk,
-              chunkIndex: i,
-              totalChunks: chunks.length
-            }),
-            signal: controller.signal,
-            credentials: "same-origin",
-          });
-
-          clearTimeout(timeoutId);
-
-          if (!response.ok) {
-            let errorMessage = `Error al guardar el orden (Status: ${response.status})`;
-            try {
-              const errorData = await response.json();
-              errorMessage = errorData.message || errorMessage;
-            } catch (e) {
-              console.error("Error al parsear la respuesta:", e);
-            }
-            throw new Error(errorMessage);
-          }
-
-          // Esperar un poco entre chunks para evitar sobrecarga
-          if (i < chunks.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-        } catch (fetchError) {
-          clearTimeout(timeoutId);
-          throw fetchError;
-        }
-      }
-
-      // Actualizar timestamp para sincronización
-      if (typeof window !== "undefined") {
-        localStorage.setItem("admin_update_timestamp", Date.now().toString());
-      }
-
-      // Implementamos un reintento para la recarga
-      let reloadSuccess = false;
-      let retryCount = 0;
-
-      while (!reloadSuccess && retryCount < 3) {
-        try {
-          if (reloadProducts) {
-            await reloadProducts();
-          }
-          reloadSuccess = true;
-        } catch (reloadError) {
-          console.warn(
-            `Error al recargar productos (intento ${retryCount + 1}):`,
-            reloadError
-          );
-          retryCount++;
-
-          if (retryCount < 3) {
-            await new Promise((resolve) =>
-              setTimeout(resolve, 1000 * Math.pow(2, retryCount))
-            );
-          }
-        }
-      }
-
-      setHasUnsavedChanges(false);
-      setShowProgressBar(false);
-      toast.success("Orden de productos guardado correctamente");
-    } catch (error) {
-      console.error("Error al guardar el orden:", error);
-      setShowProgressBar(false);
-      // Mensaje de error más específico para errores 502
-      if (error instanceof Error && error.message.includes("502")) {
-        toast.error(
-          "Error 502: El servidor tardó demasiado en responder. Intenta reordenar menos productos a la vez."
-        );
-      } else {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "No se pudo guardar el orden de los productos"
-        );
-      }
-    } finally {
-      setIsSavingOrder(false);
-    }
   };
 
   // Modificar handleEditProduct para usar la confirmación
@@ -398,16 +301,16 @@ export default function ProductsTable({
       `}</style>
 
       {/* Barra superior con botón de guardar */}
-      {hasUnsavedChanges && (
+      {isSavingOrder && (
         <div className="bg-gold/5 border-b border-gold/10 p-4 flex flex-col gap-2">
           <div className="flex justify-between items-center">
             <div className="text-gold-light/70 text-sm flex items-center">
               <AlertTriangle className="h-4 w-4 text-gold mr-2" />
               <span className="text-gold font-medium mr-2">
-                Hay cambios sin guardar
+                Arrastra y suelta para reordenar
               </span>
               <span className="text-gold-light/50">
-                Arrastra y suelta las filas para reordenar los productos
+                Los cambios se guardan automáticamente
               </span>
             </div>
             <div className="flex gap-2">
@@ -417,23 +320,6 @@ export default function ProductsTable({
                 className="border-gold/30 text-gold hover:bg-gold/10"
               >
                 Descartar cambios
-              </Button>
-              <Button
-                onClick={handleSaveOrder}
-                disabled={isSavingOrder}
-                className="bg-gold hover:bg-gold-dark text-black font-medium transition-all duration-300 hover:shadow-[0_0_15px_rgba(208,177,110,0.3)] min-w-[140px]"
-              >
-                {isSavingOrder ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-black mr-2"></div>
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Guardar orden
-                  </>
-                )}
               </Button>
             </div>
           </div>
@@ -622,7 +508,7 @@ export default function ProductsTable({
       </div>
 
       {/* Mensaje de ayuda en la parte inferior */}
-      {!hasUnsavedChanges && !isLoading && orderedProducts.length > 1 && (
+      {!isSavingOrder && !isLoading && orderedProducts.length > 1 && (
         <div className="p-4 border-t border-gold/10 text-center text-gold-light/70 text-sm">
           <div className="flex items-center justify-center gap-2">
             <GripVertical className="h-4 w-4 text-gold-light/50" />
