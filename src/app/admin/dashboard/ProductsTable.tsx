@@ -1,5 +1,11 @@
 import Image from "next/image";
-import { Pencil, Trash2, GripVertical, Save, AlertTriangle } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  GripVertical,
+  Save,
+  AlertTriangle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -49,7 +55,8 @@ export default function ProductsTable({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
-  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
+    useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   // Ref para el scroll automático durante el arrastre
@@ -60,12 +67,12 @@ export default function ProductsTable({
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
         e.preventDefault();
-        e.returnValue = '';
+        e.returnValue = "";
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
   // Función para manejar acciones que requieren confirmación
@@ -204,46 +211,147 @@ export default function ProductsTable({
   };
 
   // Guardar el nuevo orden
+  // Reemplazo de la función handleSaveOrder en ProductsTable.jsx
+
   const handleSaveOrder = async () => {
     if (!hasUnsavedChanges) return;
 
     try {
       setIsSavingOrder(true);
+
+      // Limitamos el número de productos a procesar para evitar problemas
+      if (orderedProducts.length > 200) {
+        toast.error("No se pueden reordenar más de 200 productos a la vez");
+        return;
+      }
+
       const productOrders = orderedProducts.map((product, index) => ({
         id: product.id,
         position: index,
       }));
 
-      const response = await fetch("/api/productos/reorder", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ productOrders }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Error al guardar el orden");
+      // Añadimos un indicador de progreso
+      let progressToast;
+      if (productOrders.length > 20) {
+        progressToast = toast.loading(
+          `Guardando el orden de ${productOrders.length} productos...`
+        );
       }
 
-      if (typeof window !== "undefined") {
-        localStorage.setItem("admin_update_timestamp", Date.now().toString());
-      }
+      // Agregamos un timeout para la petición fetch
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 segundos de timeout
 
-      if (reloadProducts) {
-        await reloadProducts();
-      }
+      try {
+        const response = await fetch("/api/productos/reorder", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ productOrders }),
+          signal: controller.signal,
+          // Añadir credenciales para asegurar que las cookies de autenticación se envían
+          credentials: "same-origin",
+        });
 
-      setHasUnsavedChanges(false);
-      toast.success("Orden de productos guardado correctamente");
+        clearTimeout(timeoutId);
+
+        // Mejorar el manejo de errores
+        if (!response.ok) {
+          // Descartar el toast de progreso si existe
+          if (progressToast) {
+            toast.dismiss(progressToast);
+          }
+
+          let errorMessage = `Error al guardar el orden (Status: ${response.status})`;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch (e) {
+            console.error("Error al parsear la respuesta:", e);
+          }
+          throw new Error(errorMessage);
+        }
+
+        // Intentar obtener la respuesta JSON
+        let responseData;
+        try {
+          responseData = await response.json();
+        } catch (e) {
+          console.warn("No se pudo parsear la respuesta como JSON:", e);
+        }
+
+        // Actualizar timestamp para sincronización
+        if (typeof window !== "undefined") {
+          localStorage.setItem("admin_update_timestamp", Date.now().toString());
+        }
+
+        // Implementamos un reintento para la recarga
+        let reloadSuccess = false;
+        let retryCount = 0;
+
+        while (!reloadSuccess && retryCount < 3) {
+          try {
+            if (reloadProducts) {
+              await reloadProducts();
+            }
+            reloadSuccess = true;
+          } catch (reloadError) {
+            console.warn(
+              `Error al recargar productos (intento ${retryCount + 1}):`,
+              reloadError
+            );
+            retryCount++;
+
+            if (retryCount < 3) {
+              // Esperar antes de reintentar con backoff exponencial
+              await new Promise((resolve) =>
+                setTimeout(resolve, 1000 * Math.pow(2, retryCount))
+              );
+            }
+          }
+        }
+
+        setHasUnsavedChanges(false);
+
+        // Descartar el toast de progreso si existe y mostrar éxito
+        if (progressToast) {
+          toast.dismiss(progressToast);
+        }
+
+        toast.success(
+          responseData?.message || "Orden de productos guardado correctamente"
+        );
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+
+        // Descartar el toast de progreso si existe
+        if (progressToast) {
+          toast.dismiss(progressToast);
+        }
+
+        if ((fetchError as Error).name === "AbortError") {
+          throw new Error(
+            "La solicitud tardó demasiado tiempo. Por favor, inténtalo con menos productos o en lotes más pequeños."
+          );
+        } else {
+          throw fetchError;
+        }
+      }
     } catch (error) {
       console.error("Error al guardar el orden:", error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "No se pudo guardar el orden de los productos"
-      );
+      // Mensaje de error más específico para errores 502
+      if (error instanceof Error && error.message.includes("502")) {
+        toast.error(
+          "Error 502: El servidor tardó demasiado en responder. Intenta reordenar menos productos a la vez."
+        );
+      } else {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "No se pudo guardar el orden de los productos"
+        );
+      }
     } finally {
       setIsSavingOrder(false);
     }
@@ -478,7 +586,9 @@ export default function ProductsTable({
                                   variant="ghost"
                                   size="icon"
                                   className="text-gold-light/70 hover:text-gold hover:bg-gold/10"
-                                  onClick={() => handleEditWithConfirmation(product)}
+                                  onClick={() =>
+                                    handleEditWithConfirmation(product)
+                                  }
                                   disabled={
                                     isDragging ||
                                     deletingProducts.includes(product.id)
@@ -490,7 +600,9 @@ export default function ProductsTable({
                                   variant="ghost"
                                   size="icon"
                                   className="text-gold-light/70 hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => handleDeleteWithConfirmation(product.id)}
+                                  onClick={() =>
+                                    handleDeleteWithConfirmation(product.id)
+                                  }
                                   disabled={
                                     isDragging ||
                                     deletingProducts.includes(product.id)
@@ -534,17 +646,24 @@ export default function ProductsTable({
       )}
 
       {/* Diálogo de confirmación para cambios sin guardar */}
-      <AlertDialog open={showUnsavedChangesDialog} onOpenChange={setShowUnsavedChangesDialog}>
+      <AlertDialog
+        open={showUnsavedChangesDialog}
+        onOpenChange={setShowUnsavedChangesDialog}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Hay cambios sin guardar</AlertDialogTitle>
             <AlertDialogDescription>
-              Si continúas, perderás los cambios en el orden de los productos. ¿Deseas continuar?
+              Si continúas, perderás los cambios en el orden de los productos.
+              ¿Deseas continuar?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDiscardChanges} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDiscardChanges}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Descartar cambios
             </AlertDialogAction>
           </AlertDialogFooter>
