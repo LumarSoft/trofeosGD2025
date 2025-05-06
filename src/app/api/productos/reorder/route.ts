@@ -32,14 +32,39 @@ export async function POST(request: Request) {
 
     // Actualizar todas las posiciones en una sola transacción
     try {
-      await prisma.$transaction(
-        productOrders.map(({ id, position }) =>
-          prisma.producto.update({
-            where: { id },
-            data: { position },
-          })
-        )
-      );
+      // Primero verificamos que todos los productos existan
+      const productIds = productOrders.map(order => order.id);
+      const existingProducts = await prisma.producto.findMany({
+        where: {
+          id: {
+            in: productIds
+          }
+        },
+        select: {
+          id: true
+        }
+      });
+
+      if (existingProducts.length !== productIds.length) {
+        return NextResponse.json(
+          { message: "Algunos productos no existen" },
+          { status: 400 }
+        );
+      }
+
+      // Realizamos la actualización en lotes para evitar problemas de timeout
+      const batchSize = 10;
+      for (let i = 0; i < productOrders.length; i += batchSize) {
+        const batch = productOrders.slice(i, i + batchSize);
+        await Promise.all(
+          batch.map(({ id, position }) =>
+            prisma.producto.update({
+              where: { id },
+              data: { position },
+            })
+          )
+        );
+      }
 
       return NextResponse.json({
         success: true,
@@ -47,16 +72,22 @@ export async function POST(request: Request) {
         timestamp: Date.now(),
       });
     } catch (error) {
-      console.error("Error en la transacción de actualización:", error);
+      console.error("Error en la actualización:", error);
       return NextResponse.json(
-        { message: "Error al actualizar el orden de los productos" },
+        { 
+          message: "Error al actualizar el orden de los productos",
+          error: error instanceof Error ? error.message : "Error desconocido"
+        },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error("Error al actualizar el orden de los productos:", error);
+    console.error("Error al procesar la solicitud:", error);
     return NextResponse.json(
-      { message: "Error al actualizar el orden de los productos" },
+      { 
+        message: "Error al procesar la solicitud",
+        error: error instanceof Error ? error.message : "Error desconocido"
+      },
       { status: 500 }
     );
   } finally {
