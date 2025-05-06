@@ -7,6 +7,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { toast } from "sonner";
@@ -58,6 +59,8 @@ export default function ProductsTable({
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
     useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [saveProgress, setSaveProgress] = useState(0);
+  const [showProgressBar, setShowProgressBar] = useState(false);
 
   // Ref para el scroll automático durante el arrastre
   const tableRef = useRef<HTMLDivElement>(null);
@@ -211,13 +214,13 @@ export default function ProductsTable({
   };
 
   // Guardar el nuevo orden
-  // Reemplazo de la función handleSaveOrder en ProductsTable.jsx
-
   const handleSaveOrder = async () => {
     if (!hasUnsavedChanges) return;
 
     try {
       setIsSavingOrder(true);
+      setShowProgressBar(true);
+      setSaveProgress(0);
 
       // Limitamos el número de productos a procesar para evitar problemas
       if (orderedProducts.length > 200) {
@@ -230,116 +233,99 @@ export default function ProductsTable({
         position: index,
       }));
 
-      // Añadimos un indicador de progreso
-      let progressToast;
-      if (productOrders.length > 20) {
-        progressToast = toast.loading(
-          `Guardando el orden de ${productOrders.length} productos...`
-        );
+      // Dividir los productos en chunks de 50
+      const chunkSize = 50;
+      const chunks = [];
+      for (let i = 0; i < productOrders.length; i += chunkSize) {
+        chunks.push(productOrders.slice(i, i + chunkSize));
       }
 
-      // Agregamos un timeout para la petición fetch
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 segundos de timeout
+      // Procesar cada chunk secuencialmente
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        
+        // Actualizar el progreso
+        const progress = Math.round(((i + 1) / chunks.length) * 100);
+        setSaveProgress(progress);
 
-      try {
-        const response = await fetch("/api/productos/reorder", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ productOrders }),
-          signal: controller.signal,
-          // Añadir credenciales para asegurar que las cookies de autenticación se envían
-          credentials: "same-origin",
-        });
+        // Agregar un timeout para la petición fetch
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos por chunk
 
-        clearTimeout(timeoutId);
-
-        // Mejorar el manejo de errores
-        if (!response.ok) {
-          // Descartar el toast de progreso si existe
-          if (progressToast) {
-            toast.dismiss(progressToast);
-          }
-
-          let errorMessage = `Error al guardar el orden (Status: ${response.status})`;
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.message || errorMessage;
-          } catch (e) {
-            console.error("Error al parsear la respuesta:", e);
-          }
-          throw new Error(errorMessage);
-        }
-
-        // Intentar obtener la respuesta JSON
-        let responseData;
         try {
-          responseData = await response.json();
-        } catch (e) {
-          console.warn("No se pudo parsear la respuesta como JSON:", e);
-        }
+          const response = await fetch("/api/productos/reorder", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              productOrders: chunk,
+              chunkIndex: i,
+              totalChunks: chunks.length
+            }),
+            signal: controller.signal,
+            credentials: "same-origin",
+          });
 
-        // Actualizar timestamp para sincronización
-        if (typeof window !== "undefined") {
-          localStorage.setItem("admin_update_timestamp", Date.now().toString());
-        }
+          clearTimeout(timeoutId);
 
-        // Implementamos un reintento para la recarga
-        let reloadSuccess = false;
-        let retryCount = 0;
-
-        while (!reloadSuccess && retryCount < 3) {
-          try {
-            if (reloadProducts) {
-              await reloadProducts();
+          if (!response.ok) {
+            let errorMessage = `Error al guardar el orden (Status: ${response.status})`;
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.message || errorMessage;
+            } catch (e) {
+              console.error("Error al parsear la respuesta:", e);
             }
-            reloadSuccess = true;
-          } catch (reloadError) {
-            console.warn(
-              `Error al recargar productos (intento ${retryCount + 1}):`,
-              reloadError
-            );
-            retryCount++;
-
-            if (retryCount < 3) {
-              // Esperar antes de reintentar con backoff exponencial
-              await new Promise((resolve) =>
-                setTimeout(resolve, 1000 * Math.pow(2, retryCount))
-              );
-            }
+            throw new Error(errorMessage);
           }
-        }
 
-        setHasUnsavedChanges(false);
-
-        // Descartar el toast de progreso si existe y mostrar éxito
-        if (progressToast) {
-          toast.dismiss(progressToast);
-        }
-
-        toast.success(
-          responseData?.message || "Orden de productos guardado correctamente"
-        );
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-
-        // Descartar el toast de progreso si existe
-        if (progressToast) {
-          toast.dismiss(progressToast);
-        }
-
-        if ((fetchError as Error).name === "AbortError") {
-          throw new Error(
-            "La solicitud tardó demasiado tiempo. Por favor, inténtalo con menos productos o en lotes más pequeños."
-          );
-        } else {
+          // Esperar un poco entre chunks para evitar sobrecarga
+          if (i < chunks.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
           throw fetchError;
         }
       }
+
+      // Actualizar timestamp para sincronización
+      if (typeof window !== "undefined") {
+        localStorage.setItem("admin_update_timestamp", Date.now().toString());
+      }
+
+      // Implementamos un reintento para la recarga
+      let reloadSuccess = false;
+      let retryCount = 0;
+
+      while (!reloadSuccess && retryCount < 3) {
+        try {
+          if (reloadProducts) {
+            await reloadProducts();
+          }
+          reloadSuccess = true;
+        } catch (reloadError) {
+          console.warn(
+            `Error al recargar productos (intento ${retryCount + 1}):`,
+            reloadError
+          );
+          retryCount++;
+
+          if (retryCount < 3) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, 1000 * Math.pow(2, retryCount))
+            );
+          }
+        }
+      }
+
+      setHasUnsavedChanges(false);
+      setShowProgressBar(false);
+      toast.success("Orden de productos guardado correctamente");
     } catch (error) {
       console.error("Error al guardar el orden:", error);
+      setShowProgressBar(false);
       // Mensaje de error más específico para errores 502
       if (error instanceof Error && error.message.includes("502")) {
         toast.error(
@@ -413,42 +399,52 @@ export default function ProductsTable({
 
       {/* Barra superior con botón de guardar */}
       {hasUnsavedChanges && (
-        <div className="bg-gold/5 border-b border-gold/10 p-4 flex justify-between items-center">
-          <div className="text-gold-light/70 text-sm flex items-center">
-            <AlertTriangle className="h-4 w-4 text-gold mr-2" />
-            <span className="text-gold font-medium mr-2">
-              Hay cambios sin guardar
-            </span>
-            <span className="text-gold-light/50">
-              Arrastra y suelta las filas para reordenar los productos
-            </span>
+        <div className="bg-gold/5 border-b border-gold/10 p-4 flex flex-col gap-2">
+          <div className="flex justify-between items-center">
+            <div className="text-gold-light/70 text-sm flex items-center">
+              <AlertTriangle className="h-4 w-4 text-gold mr-2" />
+              <span className="text-gold font-medium mr-2">
+                Hay cambios sin guardar
+              </span>
+              <span className="text-gold-light/50">
+                Arrastra y suelta las filas para reordenar los productos
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => handleDiscardChanges()}
+                className="border-gold/30 text-gold hover:bg-gold/10"
+              >
+                Descartar cambios
+              </Button>
+              <Button
+                onClick={handleSaveOrder}
+                disabled={isSavingOrder}
+                className="bg-gold hover:bg-gold-dark text-black font-medium transition-all duration-300 hover:shadow-[0_0_15px_rgba(208,177,110,0.3)] min-w-[140px]"
+              >
+                {isSavingOrder ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-black mr-2"></div>
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Guardar orden
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => handleDiscardChanges()}
-              className="border-gold/30 text-gold hover:bg-gold/10"
-            >
-              Descartar cambios
-            </Button>
-            <Button
-              onClick={handleSaveOrder}
-              disabled={isSavingOrder}
-              className="bg-gold hover:bg-gold-dark text-black font-medium transition-all duration-300 hover:shadow-[0_0_15px_rgba(208,177,110,0.3)] min-w-[140px]"
-            >
-              {isSavingOrder ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-black mr-2"></div>
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Guardar orden
-                </>
-              )}
-            </Button>
-          </div>
+          {showProgressBar && (
+            <div className="w-full">
+              <Progress value={saveProgress} className="h-2 bg-gold/10" />
+              <div className="text-right text-sm text-gold-light/70 mt-1">
+                {saveProgress}% completado
+              </div>
+            </div>
+          )}
         </div>
       )}
 
